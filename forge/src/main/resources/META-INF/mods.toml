@@ -6,10 +6,10 @@ license = "MIT"
 [[mods]]
 modId = "minopp"
 version = "${version}"
-displayName = "Minopp"
-authors = "Zbx1425, MalayP"
+displayName = "Mino++: Streamlined"
+authors = "Zbx1425, MalayP, VengeancePC"
 description = '''
-Recreation of a classical card game in Minecraft
+Recreation of a classical card game in Minecraft, with some changes to better reflect the game with the same name.
 '''
 logoFile = "minopp.png"
 

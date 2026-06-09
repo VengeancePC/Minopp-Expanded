@@ -6,6 +6,7 @@ import cn.zbx1425.minopp.effect.EffectEvents;
 import cn.zbx1425.minopp.effect.SeatActionTakenEffectEvent;
 import cn.zbx1425.minopp.game.ActionMessage;
 import cn.zbx1425.minopp.game.ActionReport;
+import cn.zbx1425.minopp.game.Card;
 import cn.zbx1425.minopp.game.CardGame;
 import cn.zbx1425.minopp.game.CardPlayer;
 import cn.zbx1425.minopp.item.ItemDataUtils;
@@ -45,13 +46,12 @@ public class BlockEntityMinoTable extends BlockEntity {
     public Map<Direction, CardPlayer> players = new HashMap<>();
     public CardGame game = null;
     public ActionMessage state = ActionMessage.NO_GAME;
-
     public List<Pair<ActionMessage, Long>> clientMessageList = new ArrayList<>();
-
     public ItemStack award = ItemStack.EMPTY;
     public boolean demo = false;
 
     public static final List<Direction> PLAYER_ORDER = List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST);
+
     public BlockEntityMinoTable(BlockPos blockPos, BlockState blockState) {
         super(Mino.BLOCK_ENTITY_TYPE_MINO_TABLE.get(), blockPos, blockState);
         for (Direction direction : PLAYER_ORDER) {
@@ -117,7 +117,6 @@ public class BlockEntityMinoTable extends BlockEntity {
     }
 
     public List<CardPlayer> getPlayersList() {
-        // Return a list of players in the order of NORTH, EAST, SOUTH, WEST, without null elements
         List<CardPlayer> playersList = new ArrayList<>();
         for (Direction direction : PLAYER_ORDER) {
             if (players.get(direction) != null) {
@@ -141,8 +140,8 @@ public class BlockEntityMinoTable extends BlockEntity {
 
     public void joinPlayerToTable(CardPlayer cardPlayer, Vec3 playerPos) {
         if (game != null) return;
-        BlockPos centerPos = getBlockPos().offset(1, 0, 1);
-        Vec3 playerOffset = playerPos.subtract(centerPos.getX(), centerPos.getY(), centerPos.getZ());
+        Vec3 centerPos = Vec3.atCenterOf(getBlockPos().offset(1, 0, 1));
+        Vec3 playerOffset = playerPos.subtract(centerPos.x, centerPos.y, centerPos.z);
         Direction playerDirection = Direction.fromYRot(Mth.atan2(playerOffset.z, playerOffset.x) * 180 / Math.PI - 90);
         for (Direction checkDir : players.keySet()) {
             if (cardPlayer.equals(players.get(checkDir))) {
@@ -159,26 +158,21 @@ public class BlockEntityMinoTable extends BlockEntity {
         List<CardPlayer> playerList = getPlayersList();
         if (playerList.size() < 2) return;
 
-        // Give hand card items to players
         AABB searchArea = AABB.ofSize(Vec3.atLowerCornerWithOffset(getBlockPos(), 1, 1, 1), PLAYER_RANGE, PLAYER_RANGE, PLAYER_RANGE);
         for (CardPlayer cardPlayer : playerList) {
             boolean playerFound = false;
             for (Entity entity : level.getEntities(null, searchArea)) {
                 if (entity instanceof Player mcPlayer) {
                     if (cardPlayer.uuid.equals(mcPlayer.getGameProfile().getId())) {
-                        // We've found the player, give them a card item
                         ItemStack handCard = new ItemStack(Mino.ITEM_HAND_CARDS.get());
                         ItemDataUtils.setCardGameBinding(handCard, getBlockPos(), cardPlayer.uuid);
                         if (Inventory.isHotbarSlot(mcPlayer.getInventory().selected)
-                            && mcPlayer.getInventory().getSelected().isEmpty()) {
-                            // If the player has an empty hand slot, put the card there
+                                && mcPlayer.getInventory().getSelected().isEmpty()) {
                             mcPlayer.getInventory().setItem(mcPlayer.getInventory().selected, handCard);
                             playerFound = true;
                         } else {
-                            // Main hand is occupied, try to put the card in the inventory
                             boolean addSuccessful = mcPlayer.getInventory().add(handCard);
                             if (!addSuccessful) {
-                                // Inventory is full, drop the card
                                 ItemEntity itemEntity = mcPlayer.drop(handCard, false);
                                 if (itemEntity != null) {
                                     itemEntity.setNoPickUpDelay();
@@ -191,14 +185,12 @@ public class BlockEntityMinoTable extends BlockEntity {
                     }
                 } else {
                     if (cardPlayer.uuid.equals(entity.getUUID())) {
-                        // We've found an auto player, hopefully bound to this table
                         playerFound = true;
                     }
                 }
                 if (playerFound) break;
             }
             if (!playerFound) {
-                // No player found or no hand card item given, destroy the game
                 destroyGame(initiator);
                 state = ActionReport.builder(initiator).panic(Component.translatable("game.minopp.play.player_unavailable", cardPlayer.name)).state;
                 return;
@@ -219,19 +211,16 @@ public class BlockEntityMinoTable extends BlockEntity {
         if (game != null) sendSeatActionTakenToAll();
         game = null;
 
-        // Remove hand card items from players
         for (Player mcPlayer : level.players()) {
             for (ItemStack invItem : mcPlayer.getInventory().items) {
                 if (!invItem.is(Mino.ITEM_HAND_CARDS.get())) continue;
                 BlockPos tablePos = ItemDataUtils.getBlockPos(invItem);
                 if (tablePos != null && tablePos.equals(getBlockPos())) {
-                    // This is the one bound to this table, remove
                     mcPlayer.getInventory().removeItem(invItem);
                 }
             }
         }
 
-        // Remove hand card from other entities eg. AutoPlayer, TLM
         for (CardPlayer cardPlayer : players.values()) {
             if (cardPlayer == null) continue;
             Entity entity = ((ServerLevel)level).getEntity(cardPlayer.uuid);
@@ -289,6 +278,15 @@ public class BlockEntityMinoTable extends BlockEntity {
                     }
                 }
             }
+
+        // Auto-resolve draw penalty for next player if they can't stack
+        if (game != null && game.drawCount > 0) {
+            CardPlayer penalisedPlayer = game.players.get(game.currentPlayerIndex);
+            ActionReport penaltyReport = game.resolveDrawPenalty();
+            if (penaltyReport != null) {
+                handleActionResult(penaltyReport, penalisedPlayer, null);
+            }
+        }
             sync();
         }
     }
@@ -326,7 +324,8 @@ public class BlockEntityMinoTable extends BlockEntity {
         return tag;
     }
 
-    @Nullable @Override
+    @Nullable
+    @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
     }

@@ -5,7 +5,6 @@ import cn.zbx1425.minopp.block.BlockEntityMinoTable;
 import cn.zbx1425.minopp.game.ActionReport;
 import cn.zbx1425.minopp.game.Card;
 import cn.zbx1425.minopp.game.CardPlayer;
-import cn.zbx1425.minopp.item.ItemHandCards;
 import cn.zbx1425.minopp.platform.ClientPlatform;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
@@ -14,7 +13,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -35,14 +33,25 @@ public class C2SPlayCardPacket {
                 final int wildSelectionOrdinal = packet.readInt();
                 final boolean shout = packet.readBoolean();
                 server.execute(() -> {
-                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity)) return;
-                    if (tableEntity.game == null) return;
+                    Mino.LOGGER.info("[DEBUG] case 0 lambda running");
+                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity)) {
+                        Mino.LOGGER.info("[DEBUG] not a table entity");
+                        return;
+                    }
+                    if (tableEntity.game == null) {
+                        Mino.LOGGER.info("[DEBUG] game is null");
+                        return;
+                    }
                     CardPlayer cardPlayer = tableEntity.game.deAmputate(playerUuid);
-                    if (cardPlayer == null) return;
-
+                    if (cardPlayer == null) {
+                        Mino.LOGGER.info("[DEBUG] cardPlayer is null");
+                        return;
+                    }
                     Card.Suit wildSelection = wildSelectionOrdinal == -1 ? null : Card.Suit.values()[wildSelectionOrdinal];
                     ActionReport result = tableEntity.game.playCard(cardPlayer, card, wildSelection, shout);
+                    Mino.LOGGER.info("[DEBUG] playCard done, drawCount={}", tableEntity.game.drawCount);
                     tableEntity.handleActionResult(result, cardPlayer, player);
+                    Mino.LOGGER.info("[DEBUG] handleActionResult done, drawCount={}", tableEntity.game.drawCount);
                 });
             }
             case 1 -> server.execute(() -> {

@@ -7,10 +7,16 @@ import cn.zbx1425.minopp.effect.PlayerGlowEffectEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 
+
+
 public class CardGame {
+
+  private static final ResourceLocation NOTE_BASS =
+    new ResourceLocation("minecraft", "block.note_block.bass");
 
     public List<CardPlayer> players;
     public int currentPlayerIndex;
@@ -52,100 +58,85 @@ public class CardGame {
         topCard = tobeTopCard;
         return ActionReport.builder(this, cardPlayer)
                 .sound(Mino.id("game.play"), 0)
-                .sound(Mino.id("game.turn_notice"), 500, players.get(currentPlayerIndex))
+                .sound(NOTE_BASS, 500, players.get(currentPlayerIndex))
                 .gameStarted();
     }
 
-    public ActionReport playCard(CardPlayer cardPlayer, Card card, Card.Suit wildSelection, boolean shout) {
-        ActionReport report = ActionReport.builder(this, cardPlayer);
-        int playerIndex = players.indexOf(cardPlayer);
-        if (playerIndex == -1) return report.fail(Component.translatable("game.minopp.play.no_player"));
-        if (!cardPlayer.hand.contains(card)) return report.fail(Component.translatable("game.minopp.play.not_your_card"));
-
-        boolean isCut = false;
-        // Cut
-        if (topCard.equals(card) && playerIndex != currentPlayerIndex) {
-            isCut = true;
-        } else {
-            if (playerIndex != currentPlayerIndex) return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
-        }
-
-        if (!card.canPlayOn(topCard)) return report.fail(Component.translatable("game.minopp.play.invalid_card"));
-        if (card.suit == Card.Suit.WILD && card.family == Card.Family.DRAW) {
-            for (Card otherCard : cardPlayer.hand) {
-                if (otherCard.equals(card)) continue;
-                if (otherCard.canPlayOn(topCard)) {
-                    return report.fail(Component.translatable("game.minopp.play.rule_forbid"));
-                }
-            }
-        }
-        if (isCut) currentPlayerIndex = playerIndex;
-        doDiscardCard(cardPlayer, card, report);
-        if (cardPlayer.hand.isEmpty()) {
-            report.sound(Mino.id("game.win"), 0);
-
-            report.effect(new PlayerGlowEffectEvent(cardPlayer.uuid, 6 * 20));
-            report.effect(new GrantRewardEffectEvent(cardPlayer.uuid));
-            for (int i = 0; i < 5; i++) {
-                report.effect(new PlayerFireworkEffectEvent(i * 1000 + 500, cardPlayer.uuid));
-            }
-
-            return report.gameWon();
-        }
-
-        if (card.suit == Card.Suit.WILD) {
-            topCard = topCard.withEquivSuit(wildSelection);
-        }
-        switch (card.family) {
-            case SKIP -> isSkipping = true;
-            case REVERSE -> {
-                if (players.size() == 2) {
-                    isSkipping = true;
-                } else {
-                    isAntiClockwise = !isAntiClockwise;
-                }
-            }
-            case DRAW -> drawCount -= card.number;
-        }
-        if (shout) {
-            report.combineWith(shoutMino(cardPlayer));
-        }
-
-        advanceTurn(report);
-
-        return isCut ? report.cut() : report.played();
-    }
-
-    public ActionReport playNoCard(CardPlayer cardPlayer) {
-        ActionReport report = ActionReport.builder(this, cardPlayer);
-        int playerIndex = players.indexOf(cardPlayer);
-        if (playerIndex == -1) return report.fail(Component.translatable("game.minopp.play.no_player"));
+public ActionReport playCard(CardPlayer cardPlayer, Card card, Card.Suit wildSelection, boolean shout) {
+    ActionReport report = ActionReport.builder(this, cardPlayer);
+    int playerIndex = players.indexOf(cardPlayer);
+    if (playerIndex == -1) return report.fail(Component.translatable("game.minopp.play.no_player"));
+    if (!cardPlayer.hand.contains(card)) return report.fail(Component.translatable("game.minopp.play.not_your_card"));
+    boolean isCut = false;
+    // Cut
+    if (topCard.equals(card) && playerIndex != currentPlayerIndex) {
+        isCut = true;
+    } else {
         if (playerIndex != currentPlayerIndex) return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+    }
+    // If there's a draw penalty, player must stack with matching draw card
+  if (drawCount > 0 && !(card.family == Card.Family.DRAW && card.number == topCard.number)) {
+    return report.fail(Component.translatable("game.minopp.play.must_stack_or_draw"));
+}
+    if (!card.canPlayOn(topCard)) return report.fail(Component.translatable("game.minopp.play.invalid_card"));
 
-        boolean drawn = currentPlayerPhase == PlayerActionPhase.DISCARD_DRAWN;
-        if (currentPlayerPhase == PlayerActionPhase.DISCARD_HAND) {
-            // Draw card
-            int drawCount = this.drawCount == 0 ? 1 : this.drawCount;
-            if (!doDrawCard(cardPlayer, drawCount, report)) {
-                return report.panic(Component.translatable("game.minopp.play.deck_depleted"));
-            }
-            if (this.drawCount > 0) {
-                // The draw card has already performed penalty
-                // Next player doesn't have to also use draw to counteract
-                this.topCard = topCard.withEquivFamily(Card.Family.NUMBER);
-                this.drawCount = 0;
-            }
-            currentPlayerPhase = PlayerActionPhase.DISCARD_DRAWN;
-            report.sound(Mino.id("game.turn_notice_again"), 500 * (drawCount > 1 ? drawCount + 1 : 1), cardPlayer);
-            return report.drew(drawCount);
-        } else if (currentPlayerPhase == PlayerActionPhase.DISCARD_DRAWN) {
-            report.sound(Mino.id("game.pass"), 0);
-            advanceTurn(report);
+
+    if (isCut) currentPlayerIndex = playerIndex;
+    doDiscardCard(cardPlayer, card, report);
+    if (cardPlayer.hand.isEmpty()) {
+        report.effect(new PlayerGlowEffectEvent(cardPlayer.uuid, 6 * 20));
+        report.effect(new GrantRewardEffectEvent(cardPlayer.uuid));
+        for (int i = 0; i < 5; i++) {
+            report.effect(new PlayerFireworkEffectEvent(i * 1000 + 500, cardPlayer.uuid));
         }
+        return report.gameWon();
+    }
+    if (card.suit == Card.Suit.WILD) {
+        topCard = topCard.withEquivSuit(wildSelection);
+    }
+    switch (card.family) {
+        case SKIP -> isSkipping = true;
+        case REVERSE -> {
+            if (players.size() == 2) {
+                isSkipping = true;
+            } else {
+                isAntiClockwise = !isAntiClockwise;
+            }
+        }
+        case DRAW -> drawCount -= card.number;
+    }
+    if (shout) {
+        report.combineWith(shoutMino(cardPlayer));
+    }
+    advanceTurn(report);
+    return isCut ? report.cut() : report.played();
+}
 
-        return report.playedNoCard(drawn);
+public ActionReport playNoCard(CardPlayer cardPlayer) {
+    ActionReport report = ActionReport.builder(this, cardPlayer);
+    int playerIndex = players.indexOf(cardPlayer);
+    if (playerIndex == -1) return report.fail(Component.translatable("game.minopp.play.no_player"));
+    if (playerIndex != currentPlayerIndex) return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+
+    if (currentPlayerPhase == PlayerActionPhase.DISCARD_HAND) {
+        int drawCount = this.drawCount == 0 ? 1 : this.drawCount;
+        if (!doDrawCard(cardPlayer, drawCount, report)) {
+            return report.panic(Component.translatable("game.minopp.play.deck_depleted"));
+        }
+        if (this.drawCount > 0) {
+            this.topCard = topCard.withEquivFamily(Card.Family.NUMBER);
+            this.drawCount = 0;
+        }
+        report.sound(NOTE_BASS, 500 * (drawCount > 1 ? drawCount + 1 : 1), cardPlayer);
+        advanceTurn(report); // immediately advance, no play after draw
+        return report.drew(drawCount);
+    } else if (currentPlayerPhase == PlayerActionPhase.DISCARD_DRAWN) {
+        report.sound(Mino.id("game.pass"), 0);
+        advanceTurn(report);
     }
 
+    return report.playedNoCard(false);
+}
 
     public ActionReport shoutMino(CardPlayer realPlayer) {
         ActionReport report = ActionReport.builder(this, realPlayer);
@@ -183,12 +174,31 @@ public class CardGame {
             if (!doDrawCard(targetPlayer, 2, report)) {
                 return report.panic(Component.translatable("game.minopp.play.deck_depleted"));
             }
-            targetPlayer.hasShoutedMino = true; // Avoid penalty again and again
+            targetPlayer.hasShoutedMino = true;
             report.sound(Mino.id("game.doubt_success"), 0);
             return report.messageAll(Component.translatable("game.minopp.play.doubt_success", srcPlayer.name, targetPlayer.name));
         }
     }
 
+public ActionReport resolveDrawPenalty() {
+    if (drawCount <= 0) return null; 
+    CardPlayer currentPlayer = players.get(currentPlayerIndex);
+
+    // Checks if current top card is a draw card and player has matching one
+    boolean canStack = topCard.family == Card.Family.DRAW &&
+            currentPlayer.hand.stream().anyMatch(c ->
+                c.family == Card.Family.DRAW && c.number == topCard.number);
+
+    if (canStack) return null;
+
+    ActionReport report = ActionReport.builder(this, currentPlayer);
+    int penalty = drawCount;
+    doDrawCard(currentPlayer, penalty, report);
+    topCard = topCard.withEquivFamily(Card.Family.NUMBER);
+    drawCount = 0;
+    advanceTurn(report);
+    return report;
+}
     public void doDiscardCard(CardPlayer player, Card card, ActionReport report) {
         discardDeck.add(topCard.eraseEquiv());
         topCard = card;
@@ -209,35 +219,53 @@ public class CardGame {
             cardPlayer.hand.add(deck.remove(deck.size() - 1));
             report.sound(Mino.id("game.draw"), 500 * i);
             if (drawCount > 1) {
-                report.sound(Mino.id("game.draw_multi"), 500 * i + 200);
+                report.sound(Mino.id("game.draw"), 500 * i + 200);
             }
         }
         return true;
     }
 
-    private void advanceTurn(ActionReport report) {
-//        CardPlayer previousPlayer = players.get(currentPlayer);
+public void advanceTurn(ActionReport report) {
+    currentPlayerPhase = PlayerActionPhase.DISCARD_HAND;
+    if (isSkipping) currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
+    currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
+    if (currentPlayerIndex < 0) currentPlayerIndex += players.size();
+    isSkipping = false;
 
-        currentPlayerPhase = PlayerActionPhase.DISCARD_HAND;
-        if (isSkipping) currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
-        currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
-        if (currentPlayerIndex < 0) currentPlayerIndex += players.size();
-        isSkipping = false;
+    CardPlayer currentPlayer = players.get(currentPlayerIndex);
+    currentPlayer.hasShoutedMino = false;
+    report.sound(NOTE_BASS, 500, currentPlayer);
 
-        CardPlayer currentPlayer = players.get(currentPlayerIndex);
-        currentPlayer.hasShoutedMino = false;
-        report.sound(Mino.id("game.turn_notice"), 500, currentPlayer);
-        // report.effect(new PlayerGlowEffectEvent(0, currentPlayer.uuid, 10));
+    // Auto-draw if next player has penalty and can't stack
+    if (drawCount < 0) {
+        boolean canStack = currentPlayer.hand.stream().anyMatch(c ->
+                c.family == Card.Family.DRAW && c.number == topCard.number);
+        if (!canStack) {
+            int penalty = -drawCount;
+            doDrawCard(currentPlayer, penalty, report);
+            topCard = topCard.withEquivFamily(Card.Family.NUMBER);
+            drawCount = 0;
+            // Now advance again since their turn is forfeit
+            currentPlayerPhase = PlayerActionPhase.DISCARD_HAND;
+            if (isSkipping) currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
+            currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
+            if (currentPlayerIndex < 0) currentPlayerIndex += players.size();
+            isSkipping = false;
+            CardPlayer nextPlayer = players.get(currentPlayerIndex);
+            nextPlayer.hasShoutedMino = false;
+            report.sound(NOTE_BASS, 1000, nextPlayer);
+        }
+    
     }
+}
 
-    public CardPlayer deAmputate(CardPlayer playerWithoutHand) {
-        return players.stream().filter(p -> p.equals(playerWithoutHand)).findFirst().orElse(null);
-    }
+public CardPlayer deAmputate(CardPlayer playerWithoutHand) {
+    return players.stream().filter(p -> p.equals(playerWithoutHand)).findFirst().orElse(null);
+}
 
-    public CardPlayer deAmputate(UUID uuid) {
-        return players.stream().filter(p -> p.uuid.equals(uuid)).findFirst().orElse(null);
-    }
-
+public CardPlayer deAmputate(UUID uuid) {
+    return players.stream().filter(p -> p.uuid.equals(uuid)).findFirst().orElse(null);
+}
     public enum PlayerActionPhase {
         DISCARD_HAND,
         DISCARD_DRAWN,

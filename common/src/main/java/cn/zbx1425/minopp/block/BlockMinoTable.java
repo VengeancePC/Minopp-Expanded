@@ -140,36 +140,38 @@ public class BlockMinoTable extends Block implements EntityBlock {
             return null;
         }
 
-        public static boolean isCursorHittingPile() {
-            BlockPos gamePos = getCursorPickedGame();
-            if (gamePos == null) return false;
-            ClientLevel level = Minecraft.getInstance().level;
-            if (level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
-                if (tableEntity.game == null) return false;
-                AABB pileAabb = getPileAabb(tableEntity);
-                Entity cameraEntity = Minecraft.getInstance().getCameraEntity();
-                float partialTicks = Minecraft.getInstance().getFrameTime();
-                float hitDistance = 20;
-                Vec3 rayBegin = cameraEntity.getEyePosition(partialTicks);
-                Vec3 rayDir = cameraEntity.getViewVector(partialTicks);
-                Vec3 rayEnd = rayBegin.add(rayDir.x * hitDistance, rayDir.y * hitDistance, rayDir.z * hitDistance);
-                return pileAabb.move(gamePos).clip(rayBegin, rayEnd).isPresent();
-            }
-            return true;
-        }
+    public static boolean isCursorHittingPile() {
+        BlockPos gamePos = getCursorPickedGame();
+        if (gamePos == null) return false;
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
+            if (tableEntity.game == null) return false;
+            AABB pileAabb = getPileAabb(tableEntity);
+            Entity cameraEntity = Minecraft.getInstance().getCameraEntity();
+            float partialTicks = Minecraft.getInstance().getFrameTime();
+            float hitDistance = 20;
+            Vec3 rayBegin = cameraEntity.getEyePosition(partialTicks);
+            Vec3 rayDir = cameraEntity.getViewVector(partialTicks);
+            Vec3 rayEnd = rayBegin.add(rayDir.x * hitDistance, rayDir.y * hitDistance, rayDir.z * hitDistance);
+            return pileAabb.move(Vec3.atLowerCornerOf(gamePos)).clip(rayBegin, rayEnd).isPresent();
+        } 
+        return true;
+    }  
 
-        public static AABB getPileAabb(BlockEntityMinoTable tableEntity) {
-            if (tableEntity.game == null) return new AABB(0, 0, 0, 0, 0, 0);
-            return AABB.ofSize(new Vec3(0.5, 0.94, 0.5), 0.3, 1 / 16f, 0.5)
-                    .expandTowards(0, Math.ceil(tableEntity.game.deck.size() / 5f) * (1 / 16f) * 0.3f, 0);
-        }
+public static AABB getPileAabb(BlockEntityMinoTable tableEntity) {
+    if (tableEntity.game == null) return new AABB(0, 0, 0, 0, 0, 0);
+    float deckHeight = (float) Math.ceil(tableEntity.game.deck.size() / 5f) * (1f / 48f) * 0.4f;
+    return AABB.ofSize(new Vec3(0.5, 0.94 + deckHeight / 2, 0.5), 0.5, deckHeight, 0.5)
+            .expandTowards(0, 0.02, 0);
+}
+
     }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext blockPlaceContext) {
         BlockPos firstPartPos = blockPlaceContext.getClickedPos();
         Level level = blockPlaceContext.getLevel();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 9; i++) {
             TablePartType part = TablePartType.values()[i];
             BlockPos thisPartPos = firstPartPos.offset(part.xOff, 0, part.zOff);
             boolean isPlaceable = level.getBlockState(thisPartPos).canBeReplaced(blockPlaceContext)
@@ -183,7 +185,7 @@ public class BlockMinoTable extends Block implements EntityBlock {
     public void setPlacedBy(Level level, BlockPos blockPos, BlockState blockState, @Nullable LivingEntity livingEntity, ItemStack itemStack) {
         super.setPlacedBy(level, blockPos, blockState, livingEntity, itemStack);
         if (!level.isClientSide) {
-            for (int i = 1; i < 4; i++) {
+            for (int i = 1; i < 9; i++) {
                 TablePartType thisPart = TablePartType.values()[i];
                 BlockPos thisPartPos = blockPos.offset(thisPart.xOff, 0, thisPart.zOff);
                 level.setBlock(thisPartPos, this.defaultBlockState().setValue(PART, thisPart), Block.UPDATE_ALL | Block.UPDATE_KNOWN_SHAPE);
@@ -194,7 +196,7 @@ public class BlockMinoTable extends Block implements EntityBlock {
     @Override
     public @NotNull BlockState updateShape(BlockState blockState, Direction direction, BlockState blockState2, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos blockPos2) {
         BlockPos firstPartPos = getCore(blockState, blockPos);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 9; i++) {
             TablePartType thisPart = TablePartType.values()[i];
             BlockPos thisPartPos = firstPartPos.offset(thisPart.xOff, 0, thisPart.zOff);
             if (!levelAccessor.getBlockState(thisPartPos).is(this)) {
@@ -208,7 +210,7 @@ public class BlockMinoTable extends Block implements EntityBlock {
     public void playerWillDestroy(Level level, BlockPos blockPos, BlockState blockState, Player player) {
         if (!level.isClientSide && player.isCreative()) {
             BlockPos firstPartPos = getCore(blockState, blockPos);
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 9; i++) {
                 TablePartType thisPart = TablePartType.values()[i];
                 BlockPos thisPartPos = firstPartPos.offset(thisPart.xOff, 0, thisPart.zOff);
                 level.setBlock(thisPartPos, Blocks.AIR.defaultBlockState(),
@@ -235,26 +237,30 @@ public class BlockMinoTable extends Block implements EntityBlock {
         if (blockState.getValue(PART) != TablePartType.X_LESS_Z_LESS) return null;
         return new BlockEntityMinoTable(blockPos, blockState);
     }
+public enum TablePartType implements StringRepresentable {
+    X_LESS_Z_LESS(0, 0),
+    X_LESS_Z_MID(0, 1),
+    X_LESS_Z_MORE(0, 2),
+    X_MID_Z_LESS(1, 0),
+    X_MID_Z_MID(1, 1),
+    X_MID_Z_MORE(1, 2),
+    X_MORE_Z_LESS(2, 0),
+    X_MORE_Z_MID(2, 1),
+    X_MORE_Z_MORE(2, 2);
 
-    public enum TablePartType implements StringRepresentable {
-        X_LESS_Z_LESS,
-        X_LESS_Z_MORE,
-        X_MORE_Z_LESS,
-        X_MORE_Z_MORE;
+    public final int xOff;
+    public final int zOff;
 
-        public final int xOff;
-        public final int zOff;
-
-        TablePartType() {
-            this.xOff = this.ordinal() / 2;
-            this.zOff = this.ordinal() % 2;
-        }
-
-        @Override
-        public @NotNull String getSerializedName() {
-            return this.name().toLowerCase();
-        }
+    TablePartType(int xOff, int zOff) {
+        this.xOff = xOff;
+        this.zOff = zOff;
     }
+
+    @Override
+    public @NotNull String getSerializedName() {
+        return this.name().toLowerCase();
+    }
+}
 
     @Override
     public float getShadeBrightness(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos) {
@@ -272,4 +278,5 @@ public class BlockMinoTable extends Block implements EntityBlock {
     public @NotNull VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return VOXEL_SHAPE;
     }
+
 }

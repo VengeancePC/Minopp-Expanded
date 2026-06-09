@@ -7,7 +7,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'minopp'
+rootProject.name = 'minoppstreamlined'
 
 include 'common'
 include 'fabric'
