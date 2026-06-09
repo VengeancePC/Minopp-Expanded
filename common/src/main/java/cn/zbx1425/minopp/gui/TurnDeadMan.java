@@ -1,6 +1,5 @@
 package cn.zbx1425.minopp.gui;
 
-import cn.zbx1425.minopp.Mino;
 import cn.zbx1425.minopp.MinoClient;
 import cn.zbx1425.minopp.game.CardGame;
 import cn.zbx1425.minopp.game.CardPlayer;
