@@ -6,7 +6,7 @@ license = "MIT"
 [[mods]]
 modId = "minopp"
 version = "${version}"
-displayName = "Mino++: Streamlined"
+displayName = "Mino++: Expanded"
 authors = "Zbx1425, MalayP, VengeancePC"
 description = '''
 Recreation of a classical card game in Minecraft, with some changes to better reflect the game with the same name.
