@@ -5,6 +5,7 @@ import cn.zbx1425.minopp.MinoClient;
 import cn.zbx1425.minopp.block.BlockEntityMinoTable;
 import cn.zbx1425.minopp.block.BlockMinoTable;
 import cn.zbx1425.minopp.game.*;
+import cn.zbx1425.minopp.config.ClientConfig;
 import cn.zbx1425.minopp.item.ItemHandCards;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.datafixers.util.Pair;
@@ -25,6 +26,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+
 
 import java.util.ListIterator;
 import java.util.Objects;
@@ -76,7 +78,7 @@ public class GameOverlayLayer {
 
     private void renderGameInactive(GuiGraphics guiGraphics, float partialTicks, BlockEntityMinoTable tableEntity) {
         if (Minecraft.getInstance().options.hideGui) return;
-        int x = 20, y = 60;
+        int x = ClientConfig.GUI_X_POSITION, y = ClientConfig.GUI_Y_POSITION;
         Font font = Minecraft.getInstance().font;
         for (String part : tableEntity.state.message().getString().split("\n")) {
             drawStringWithBackdrop(guiGraphics, font, Component.literal(part), x, y, 0xFFFFFFFF);
@@ -106,7 +108,9 @@ public class GameOverlayLayer {
         }
 
         if (Minecraft.getInstance().options.hideGui) return;
-        int x = 20, y = 60;
+        // defines game GUI position, listing game actions (by default top left), negative goes left, positive goes right for X
+        int x = ClientConfig.GUI_X_POSITION, y = ClientConfig.GUI_Y_POSITION;
+
         Font font = Minecraft.getInstance().font;
         drawStringWithBackdrop(guiGraphics, font, Component.translatable("gui.minopp.play.game_active").append(" © Zbx1425"), x, y, 0xFF7090FF);
         y += font.lineHeight;

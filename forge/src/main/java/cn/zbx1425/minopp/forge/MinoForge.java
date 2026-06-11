@@ -5,6 +5,7 @@ import cn.zbx1425.minopp.MinoClient;
 import cn.zbx1425.minopp.MinoCommand;
 import cn.zbx1425.minopp.entity.EntityAutoPlayer;
 import cn.zbx1425.minopp.forge.compat.touhou_little_maid.TouhouLittleMaidCompat;
+import cn.zbx1425.minopp.forge.config.ForgeClientConfig;
 import cn.zbx1425.minopp.platform.forge.CompatPacket;
 import cn.zbx1425.minopp.platform.forge.CompatPacketRegistry;
 import cn.zbx1425.minopp.platform.forge.RegistriesWrapperImpl;
@@ -12,7 +13,9 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -21,6 +24,7 @@ import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
+
 
 @Mod(Mino.MOD_ID)
 public final class MinoForge {
@@ -50,6 +54,7 @@ public final class MinoForge {
         TouhouLittleMaidCompat.init(eventBus);
 
         if (FMLEnvironment.dist.isClient()) {
+            ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ForgeClientConfig.SPEC);
             MinoClient.init();
             eventBus.register(ClientProxy.ModEventBusListener.class);
             MinecraftForge.EVENT_BUS.register(ClientProxy.ForgeEventBusListener.class);
@@ -61,7 +66,23 @@ public final class MinoForge {
         public static void newEntityAttributes(EntityAttributeCreationEvent event) {
             event.put(Mino.ENTITY_AUTO_PLAYER.get(), EntityAutoPlayer.createAttributes());
         }
+
+        @SubscribeEvent
+        public static void onConfigLoad(net.minecraftforge.fml.event.config.ModConfigEvent event) {
+            if (event.getConfig().getType() == ModConfig.Type.CLIENT) {
+            cn.zbx1425.minopp.config.ClientConfig.GUI_X_POSITION = ForgeClientConfig.GUI_X_POSITION.get();
+            cn.zbx1425.minopp.config.ClientConfig.GUI_Y_POSITION = ForgeClientConfig.GUI_Y_POSITION.get();
+            }
+        }
+
+        @SubscribeEvent
+        public static void onConfigReload(net.minecraftforge.fml.event.config.ModConfigEvent.Reloading event) {
+            if (event.getConfig().getType() == ModConfig.Type.CLIENT) {
+            cn.zbx1425.minopp.config.ClientConfig.GUI_X_POSITION = ForgeClientConfig.GUI_X_POSITION.get();
+            cn.zbx1425.minopp.config.ClientConfig.GUI_Y_POSITION = ForgeClientConfig.GUI_Y_POSITION.get();
     }
+    }
+}
 
     public static class ForgeEventBusListener {
         @SubscribeEvent
@@ -80,3 +101,4 @@ public final class MinoForge {
         }
     }
 }
+
