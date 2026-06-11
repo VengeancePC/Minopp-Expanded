@@ -5,7 +5,6 @@ import cn.zbx1425.minopp.effect.SoundEffectEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -39,6 +39,11 @@ public class GameOverlayLayer {
     private double zoomAnimationTarget = 0;
     private final Long2FloatArrayMap handCardCurrentXOff = new Long2FloatArrayMap();
 
+    // Jump-in related values
+    private long jumpInWindowStart = -1;
+    private Card jumpInCard = null;
+    private static final long JUMP_IN_WINDOW_MS = 3000; // 3 seconds
+
     public void render(GuiGraphics guiGraphics, float partialTicks) {
         LocalPlayer player = Minecraft.getInstance().player;
         BlockPos handCardGamePos = ItemHandCards.getHandCardGamePos(player);
@@ -121,6 +126,34 @@ public class GameOverlayLayer {
             drawStringWithBackdrop(guiGraphics, font, Component.translatable("gui.minopp.play.turn_other", currentPlayer.name), x, y, 0xFFAAAAAA);
         }
         y += font.lineHeight;
+
+        // checks you are not current player and checks if jump-in is avaliable or not
+            if (!currentPlayer.equals(cardPlayer)) {
+        CardPlayer realPlayer = tableEntity.game.players.stream()
+            .filter(p -> p.equals(cardPlayer)).findFirst().orElse(null);
+        if (realPlayer != null) {
+            Card matchingCard = realPlayer.hand.stream()
+                .filter(c -> c.equals(tableEntity.game.topCard))
+                .findFirst().orElse(null);
+            if (matchingCard != null) {
+                if (jumpInCard == null || !jumpInCard.equals(matchingCard)) {
+                    jumpInWindowStart = System.currentTimeMillis();
+                    jumpInCard = matchingCard;
+                }
+                // runs a brief window to prompt a jump-in is avaliable
+                long remaining = JUMP_IN_WINDOW_MS - (System.currentTimeMillis() - jumpInWindowStart);
+                if (remaining > 0) {
+                    drawStringWithBackdrop(guiGraphics, font,
+                        Component.literal("Jump in! " + (remaining / 1000 + 1) + "s"),
+                        x, y, 0xFFFFAA00);
+                } else {
+                    jumpInCard = null;
+                }
+            } else {
+                jumpInCard = null;
+            }
+        }
+    }
         MutableComponent auxInfo = Component.translatable("gui.minopp.play.direction." + (tableEntity.game.isAntiClockwise ? "ccw" : "cw"));
         if (tableEntity.game.drawCount > 0) {
             auxInfo = auxInfo.append(", ").append(Component.translatable("gui.minopp.play.draw_accumulate", tableEntity.game.drawCount));

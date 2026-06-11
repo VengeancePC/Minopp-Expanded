@@ -46,20 +46,20 @@ public class BlockEntityMinoTableRenderer implements BlockEntityRenderer<BlockEn
         // }
 
         // Draw deck pile (face-down cards stacked at core +0.5)
-                poseStack.pushPose();
-                poseStack.translate(0.5, 0.94, 0.5);
-                poseStack.scale(0.5f, 0.4f, 0.5f);
-                BakedModel model = itemRenderer.getModel(HAND_CARDS_MODEL_PLACEHOLDER.get(), null, null, 0);
-                poseStack.mulPose(Axis.XP.rotation(-(float)Math.PI / 2));
-                Random deckRandom = new Random(1);
-                for (int ci = 0; ci < Math.ceil(blockEntity.game.deck.size() / 5f); ci++) {
-                poseStack.pushPose();
-                poseStack.translate(deckRandom.nextFloat() * 0.1 - 0.05, deckRandom.nextFloat() * 0.1 - 0.05, ci * (1f / 48f));
-                itemRenderer.render(HAND_CARDS_MODEL_PLACEHOLDER.get(), ItemDisplayContext.FIXED, false,
-                        poseStack, multiBufferSource, packedLight, packedOverlay, model);
-                poseStack.popPose();
-                }
-                poseStack.popPose();
+        poseStack.pushPose();
+        poseStack.translate(0.5, 0.94, 0.5);
+        poseStack.scale(0.5f, 0.4f, 0.5f);
+        BakedModel model = itemRenderer.getModel(HAND_CARDS_MODEL_PLACEHOLDER.get(), null, null, 0);
+        poseStack.mulPose(Axis.XP.rotation(-(float)Math.PI / 2));
+        Random deckRandom = new Random(1);
+        for (int ci = 0; ci < Math.ceil(blockEntity.game.deck.size() / 5f); ci++) {
+        poseStack.pushPose();
+        poseStack.translate(deckRandom.nextFloat() * 0.1 - 0.05, deckRandom.nextFloat() * 0.1 - 0.05, ci * (1f / 48f));
+        itemRenderer.render(HAND_CARDS_MODEL_PLACEHOLDER.get(), ItemDisplayContext.FIXED, false,
+                poseStack, multiBufferSource, packedLight, packedOverlay, model);
+        poseStack.popPose();
+        }
+        poseStack.popPose();
         // Draw discard pile (face-up cards stacked in center)
         poseStack.pushPose();
         poseStack.translate(1.5, 0.94, 1.5);
@@ -68,27 +68,35 @@ public class BlockEntityMinoTableRenderer implements BlockEntityRenderer<BlockEn
         VertexConsumer vertexConsumer = multiBufferSource.getBuffer(RenderType.entityCutout(Mino.id("textures/gui/deck.png")));
         Random discardRandom = new Random(1);
 
-        for (int ci = 0; ci <= blockEntity.game.discardDeck.size(); ci++) {
-        poseStack.pushPose();
+        int discardSize = blockEntity.game.discardDeck.size();
+        int maxVisualCards = 20; // max cards rendered (excluding top card)
+        int startIndex = Math.max(0, discardSize - maxVisualCards);
 
-        // controls card variation in the middle pile
+        for (int s = 0; s < startIndex; s++) {
+        discardRandom.nextFloat(); discardRandom.nextFloat(); discardRandom.nextFloat();
+        }
+
+        for (int ci = startIndex; ci <= discardSize; ci++) {
+        poseStack.pushPose();
+        //  controls card variation in the middle pile
         float offsetX = discardRandom.nextFloat() * 0.3f - 0.15f;
         float offsetY = discardRandom.nextFloat() * 0.3f - 0.15f;
         float cardYaw = discardRandom.nextFloat() * 0.8f - 0.4f;
 
-        if (ci == blockEntity.game.discardDeck.size()) {
-                // Top card: same position as last card but one step higher, no random offset
+        // Visual stack index (0 = bottom of visible portion)
+        int visualIndex = ci - startIndex;
+
+        if (ci == discardSize) {
                 offsetX = 0;
                 offsetY = 0;
                 cardYaw = 0;
-                poseStack.translate(offsetX, offsetY, ci * (1f / 56f) + 0.01f);
+                poseStack.translate(offsetX, offsetY, visualIndex * (1f / 56f) + 0.01f);
         } else {
-                poseStack.translate(offsetX, offsetY, ci * (1f / 56f));
+                poseStack.translate(offsetX, offsetY, visualIndex * (1f / 56f));
         }
-
         poseStack.mulPose(Axis.ZP.rotation(cardYaw));
 
-        Card card = ci == blockEntity.game.discardDeck.size() ? blockEntity.game.topCard : blockEntity.game.discardDeck.get(ci);
+        Card card = ci == discardSize ? blockEntity.game.topCard : blockEntity.game.discardDeck.get(ci);
         float cardU = switch (card.family) {
                 case NUMBER -> Math.abs(card.number) * 16;
                 case SKIP -> 160;
