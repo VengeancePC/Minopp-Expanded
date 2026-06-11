@@ -9,6 +9,7 @@ public class ForgeClientConfig {
 
     public static final ForgeConfigSpec.IntValue GUI_X_POSITION;
     public static final ForgeConfigSpec.IntValue GUI_Y_POSITION;
+    public static final ForgeConfigSpec.BooleanValue MINIMAL_GUI;
 
     static {
         BUILDER.push("display");
@@ -20,6 +21,10 @@ public class ForgeClientConfig {
         GUI_Y_POSITION = BUILDER
             .comment("Y position of the game GUI. Negative goes up, positive goes down. Default is 60.")
             .defineInRange("guiYPosition", 60, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        
+        MINIMAL_GUI = BUILDER
+            .comment("For a more realistic experience, you can choose to disable the game GUI and any on screen reminders (drawing from the deck, turn reminders), the only element that will be displayed is the top card text. Default is true (enabled).")
+            .define("minimalGUI", true);
 
         BUILDER.pop();
         SPEC = BUILDER.build();
