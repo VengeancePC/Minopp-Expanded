@@ -70,9 +70,9 @@
   "gui.minopp.play.cursor.shout": "<§6Mino!§r>",
   "gui.minopp.play.cursor.dead_man": "(Your Turn)",
 
-  "gui.minopp.seats.title": "Participants Seated on the Table",
+  "gui.minopp.seats.title": "Seated on the Table",
   "gui.minopp.seats.start": "§aStart",
-  "gui.minopp.seats.stop": "§cE-Stop",
+  "gui.minopp.seats.stop": "§cStop",
   "gui.minopp.seats.reset": "§6Reset Seats",
 
   "task.minopp.minopp_task": "Mino",
