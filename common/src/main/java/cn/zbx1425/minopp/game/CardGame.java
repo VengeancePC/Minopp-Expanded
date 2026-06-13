@@ -1,9 +1,11 @@
 package cn.zbx1425.minopp.game;
 
 import cn.zbx1425.minopp.Mino;
+import cn.zbx1425.minopp.block.BlockEntityMinoTable;
 import cn.zbx1425.minopp.effect.GrantRewardEffectEvent;
 import cn.zbx1425.minopp.effect.PlayerFireworkEffectEvent;
 import cn.zbx1425.minopp.effect.PlayerGlowEffectEvent;
+import cn.zbx1425.minopp.block.BlockEntityMinoTable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
@@ -11,6 +13,10 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 
+// reference for later adding in rule checks
+// if (tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true)) {
+//     // jump-in logic
+// }
 
 
 public class CardGame {
@@ -24,6 +30,8 @@ public class CardGame {
     public int drawCount;
     public boolean isSkipping;
     public PlayerActionPhase currentPlayerPhase;
+
+    public BlockEntityMinoTable tableEntity;
 
     public boolean isAntiClockwise;
 
@@ -65,23 +73,30 @@ public class CardGame {
 public ActionReport playCard(CardPlayer cardPlayer, Card card, Card.Suit wildSelection, boolean shout) {
     ActionReport report = ActionReport.builder(this, cardPlayer);
     int playerIndex = players.indexOf(cardPlayer);
-    if (playerIndex == -1) return report.fail(Component.translatable("game.minopp.play.no_player"));
-    if (!cardPlayer.hand.contains(card)) return report.fail(Component.translatable("game.minopp.play.not_your_card"));
+    if (playerIndex == -1)
+        return report.fail(Component.translatable("game.minopp.play.no_player"));
+    if (!cardPlayer.hand.contains(card))
+        return report.fail(Component.translatable("game.minopp.play.not_your_card"));
     boolean isCut = false;
     // Cut
     if (topCard.equals(card) && playerIndex != currentPlayerIndex) {
+        if (!tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true)) {
+            return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+        }
         isCut = true;
     } else {
-        if (playerIndex != currentPlayerIndex) return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+        if (playerIndex != currentPlayerIndex)
+            return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
     }
     // If there's a draw penalty, player must stack with matching draw card
-  if (drawCount > 0 && !(card.family == Card.Family.DRAW && card.number == topCard.number)) {
-    return report.fail(Component.translatable("game.minopp.play.must_stack_or_draw"));
-}
-    if (!card.canPlayOn(topCard)) return report.fail(Component.translatable("game.minopp.play.invalid_card"));
+    if (drawCount > 0 && !(card.family == Card.Family.DRAW && card.number == topCard.number)) {
+        return report.fail(Component.translatable("game.minopp.play.must_stack_or_draw"));
+    }
+    if (!card.canPlayOn(topCard))
+        return report.fail(Component.translatable("game.minopp.play.invalid_card"));
 
-
-    if (isCut) currentPlayerIndex = playerIndex;
+    if (isCut)
+        currentPlayerIndex = playerIndex;
     doDiscardCard(cardPlayer, card, report);
     if (cardPlayer.hand.isEmpty()) {
         report.effect(new PlayerGlowEffectEvent(cardPlayer.uuid, 6 * 20));

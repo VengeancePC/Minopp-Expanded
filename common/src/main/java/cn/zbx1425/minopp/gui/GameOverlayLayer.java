@@ -141,7 +141,7 @@ public class GameOverlayLayer {
                     jumpInCard = matchingCard;
                 }
                 // runs a brief window to prompt a jump-in is avaliable
-                long remaining = JUMP_IN_WINDOW_MS - (System.currentTimeMillis() - jumpInWindowStart);
+                long remaining = getJumpInRemaining();
                 if (remaining > 0) {
                     drawStringWithBackdrop(guiGraphics, font,
                         Component.literal("Jump in! " + (remaining / 1000 + 1) + "s"),
@@ -231,6 +231,18 @@ public class GameOverlayLayer {
             guiGraphics.drawString(font, deadManMessage, -msgWidth / 2, 2, highlight ? 0xFF222222 : 0xFFFFFFDD);
             guiGraphics.pose().popPose();
         }
+    }
+
+    
+    public long getJumpInRemaining() {
+        if (jumpInCard == null || jumpInWindowStart < 0) {
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            JUMP_IN_WINDOW_MS - (System.currentTimeMillis() - jumpInWindowStart)
+        );
     }
     
     private static void drawStringWithBackdrop(GuiGraphics guiGraphics, Font font, Component component, int x, int y, int color) {

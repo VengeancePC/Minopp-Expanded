@@ -1,5 +1,8 @@
 package cn.zbx1425.minopp.gui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import cn.zbx1425.minopp.block.BlockEntityMinoTable;
 import cn.zbx1425.minopp.game.CardPlayer;
 import cn.zbx1425.minopp.item.ItemHandCards;
@@ -25,6 +28,36 @@ public class SeatControlScreen extends Screen {
         this.gamePos = gamePos;
     }
 
+
+    // all gamerules which can be toggled at before a game
+    private boolean settingsOpen = false;
+    private Button settingsButton;
+
+    private final List<Button> ruleButtons = new ArrayList<>();
+
+// helper to add a rule row
+private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, BlockEntityMinoTable te) {
+    int checkSize = 10;
+    Button btn = Button.builder(Component.empty(), b -> {
+        boolean current = te.getRule(ruleKey, true);
+
+        te.rules.put(ruleKey, !current); // immediate local update
+
+        C2SSeatControlPacket.Client.sendRuleC2S(
+                gamePos,
+                ruleKey,
+                !current
+        );
+    })
+    .pos(sideX + 6 - 1, rowY - 1)
+    .size(checkSize + 2, checkSize + 2)
+    .build();
+
+    addRenderableWidget(btn);
+    ruleButtons.add(btn);
+}
+    
+
     private static ResourceLocation getPlayerSkin(BlockEntityMinoTable tableEntity, Direction direction) {
     CardPlayer player = tableEntity.players.get(direction);
     if (player == null) return null;
@@ -40,11 +73,11 @@ public class SeatControlScreen extends Screen {
     int LARGE_BTN_HEIGHT = 20;
     int MARGIN = 8;
 
-    int PANEL_HEIGHT = MARGIN + 9 + MARGIN
+    int PANEL_HEIGHT = MARGIN + 6 + MARGIN
             + MARGIN + 9 + MARGIN + LARGE_BTN_HEIGHT + MARGIN + 9 + MARGIN
             + MARGIN + LARGE_BTN_HEIGHT + MARGIN;
     int PANEL_WIDTH = 260;
-
+    
         private Button stopButton, startButton, leaveButton;
 
     @Override
@@ -71,9 +104,36 @@ public class SeatControlScreen extends Screen {
         leaveButton = Button.builder(Component.translatable("gui.minopp.seats.reset"), e -> {
             C2SSeatControlPacket.Client.sendResetSeatsC2S(gamePos);
             onClose();
-        }).pos( xOff + PANEL_WIDTH - MARGIN - LARGE_BTN_WIDTH, yOff + PANEL_HEIGHT - MARGIN - LARGE_BTN_HEIGHT).size(LARGE_BTN_WIDTH, LARGE_BTN_HEIGHT).build();        
+        }).pos(xOff + PANEL_WIDTH - MARGIN - LARGE_BTN_WIDTH, yOff + PANEL_HEIGHT - MARGIN - LARGE_BTN_HEIGHT)
+                .size(LARGE_BTN_WIDTH, LARGE_BTN_HEIGHT).build();
         leaveButton.active = false;
         addRenderableWidget(leaveButton);
+
+        settingsButton = Button.builder(Component.literal(settingsOpen ? "<" : ">"), b -> {
+            settingsOpen = !settingsOpen;
+            init();
+        })
+                .pos(xOff + PANEL_WIDTH - 20, yOff + 4)
+                .size(16, 16)
+                .build();
+        addRenderableWidget(settingsButton);
+
+        ruleButtons.clear();
+        if (settingsOpen && minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable te) {
+            int sideX = xOff + PANEL_WIDTH + 8;
+            int sideY = yOff;
+            int rowHeight = 14;
+            int headerHeight = 9 + 12;
+
+            String[][] rulesList = {
+                    { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" }
+            };
+
+            for (int i = 0; i < rulesList.length; i++) {
+                int rowY = sideY + headerHeight + 8 + i * rowHeight;
+                addRuleRow(sideX, rowY, rulesList[i][0], rulesList[i][1], te);
+            }
+        }
     }
 
     @Override
@@ -99,10 +159,60 @@ public class SeatControlScreen extends Screen {
             // Title backdrop
             guiGraphics.fill(xOff, yOff + MARGIN - 6, xOff + PANEL_WIDTH, yOff + MARGIN + 9 + 6, 0x99000000);
             guiGraphics.drawCenteredString(font, title, width / 2, yOff + MARGIN, 0xFFAAAAAA);
-            // middle square    
+            // middle square
             guiGraphics.fill(width / 2 - LARGE_BTN_HEIGHT / 2, yOff + MARGIN + 9 + MARGIN + MARGIN + 9 + MARGIN,
-                    width / 2 + LARGE_BTN_HEIGHT / 2, yOff + MARGIN + 9 + MARGIN + MARGIN + 9 + MARGIN + LARGE_BTN_HEIGHT,
+                    width / 2 + LARGE_BTN_HEIGHT / 2,
+                    yOff + MARGIN + 9 + MARGIN + MARGIN + 9 + MARGIN + LARGE_BTN_HEIGHT,
                     0xFF3E2723);
+
+            if (settingsOpen) {
+                guiGraphics.fill(
+                        settingsButton.getX() - 1,
+                        settingsButton.getY() - 1,
+                        settingsButton.getX() + settingsButton.getWidth() + 1,
+                        settingsButton.getY() + settingsButton.getHeight() + 1,
+                        0xFF4CAF50);
+            }
+
+            if (settingsOpen && minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable te) {
+                int sideX = xOff + PANEL_WIDTH + 8;
+                int sideY = yOff;
+                int checkSize = 10;
+                int rowHeight = 14;
+                int headerHeight = 9 + 12;
+
+                String[][] rulesList = {
+                        { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" }
+                };
+
+                int sideWidth = 140;
+                int sideHeight = PANEL_HEIGHT;
+
+                guiGraphics.fill(sideX - 1, sideY - 1, sideX + sideWidth + 1, sideY + sideHeight + 1, 0xCC000000);
+                guiGraphics.fill(sideX, sideY, sideX + sideWidth, sideY + sideHeight, 0xFF313031);
+                guiGraphics.fill(sideX, sideY - 6, sideX + sideWidth, sideY + 9 + 6, 0x99000000);
+                guiGraphics.drawString(font, "Settings", sideX + 6, sideY + 6, 0xFFFFFFFF);
+
+                for (int i = 0; i < rulesList.length; i++) {
+                    String ruleKey = rulesList[i][0];
+                    String label = rulesList[i][1];
+                    int rowY = sideY + headerHeight + 8 + i * rowHeight;
+                    boolean enabled = te.getRule(ruleKey, true);
+                    if (enabled) {
+                        guiGraphics.fill(
+                                sideX + 6 - 2,
+                                rowY - 2,
+                                sideX + 6 + checkSize + 2,
+                                rowY + checkSize + 2,
+                                0xFF4CAF50);
+                    }
+                    guiGraphics.drawString(font, label, sideX + 22, rowY + 1, 0xFFFFFFFF);
+                }
+
+                for (Button b : ruleButtons) {
+                    b.active = te.game == null;
+                }
+            }
 
             // North Player
             {

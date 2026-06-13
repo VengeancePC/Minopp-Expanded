@@ -50,6 +50,17 @@ public class BlockEntityMinoTable extends BlockEntity {
     public ItemStack award = ItemStack.EMPTY;
     public boolean demo = false;
 
+    // game rules
+    public Map<String, Boolean> rules = new HashMap<>();
+
+    public boolean getRule(String name, boolean defaultValue) {
+        return rules.getOrDefault(name, defaultValue);
+}
+
+    public static final String RULE_JUMP_IN = "allowJumpIn";
+    
+
+
     public static final List<Direction> PLAYER_ORDER = List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST);
 
     public BlockEntityMinoTable(BlockPos blockPos, BlockState blockState) {
@@ -75,6 +86,13 @@ public class BlockEntityMinoTable extends BlockEntity {
         compoundTag.put("state", state.toTag());
         if (!award.isEmpty()) compoundTag.put("award", award.save(new CompoundTag()));
         compoundTag.putBoolean("demo", demo);
+
+        CompoundTag rulesTag = new CompoundTag();
+        for (Map.Entry<String, Boolean> entry : rules.entrySet()) {
+    rulesTag.putBoolean(entry.getKey(), entry.getValue());
+}
+        compoundTag.put("rules", rulesTag);
+
     }
 
     @Override
@@ -91,8 +109,11 @@ public class BlockEntityMinoTable extends BlockEntity {
         CardGame previousGame = game;
         if (compoundTag.contains("game")) {
             game = new CardGame(compoundTag.getCompound("game"));
+            game.tableEntity = this;
         } else {
             game = null;
+            
+            
         }
         ActionMessage newState = new ActionMessage(compoundTag.getCompound("state"));
         if (!newState.equals(state)) {
@@ -114,6 +135,16 @@ public class BlockEntityMinoTable extends BlockEntity {
         } else {
             demo = false;
         }
+        rules.clear();
+        if (compoundTag.contains("rules")) {
+            CompoundTag rulesTag = compoundTag.getCompound("rules");
+            for (String key : rulesTag.getAllKeys()) {
+                rules.put(key, rulesTag.getBoolean(key));
+            }
+        }
+
+        // Default values for missing rules
+        rules.putIfAbsent(RULE_JUMP_IN, true);
     }
 
     public List<CardPlayer> getPlayersList() {
@@ -202,6 +233,7 @@ public class BlockEntityMinoTable extends BlockEntity {
             p.hasShoutedMino = false;
         } });
         game = new CardGame(getPlayersList());
+        game.tableEntity = this;
         state = game.initiate(initiator, 7).state;
         sendSeatActionTakenToAll();
         sync();

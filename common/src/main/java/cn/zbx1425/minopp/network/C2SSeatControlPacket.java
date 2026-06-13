@@ -24,15 +24,18 @@ public class C2SSeatControlPacket {
     public static void handleC2S(MinecraftServer server, ServerPlayer player, FriendlyByteBuf packet) {
         BlockPos gamePos = packet.readBlockPos();
         int action = packet.readInt();
+        String ruleName = (action == 2) ? packet.readUtf() : null;
+        boolean ruleValue = (action == 2) ? packet.readBoolean() : false;
         ServerLevel level = player.serverLevel();
         server.execute(() -> {
             if (level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
                 List<CardPlayer> playersList = tableEntity.getPlayersList();
                 CardPlayer cardPlayer = ItemHandCards.getCardPlayer(player);
-//                if (!playersList.contains(cardPlayer)) {
-//                    player.displayClientMessage(Component.translatable("game.minopp.play.no_player"), true);
-//                    return;
-//                }
+                // if (!playersList.contains(cardPlayer)) {
+                // player.displayClientMessage(Component.translatable("game.minopp.play.no_player"),
+                // true);
+                // return;
+                // }
                 if (tableEntity.demo) {
                     player.displayClientMessage(Component.translatable("game.minopp.play.table_in_demo"), true);
                     return;
@@ -42,17 +45,26 @@ public class C2SSeatControlPacket {
                     case 1 -> {
                         if (tableEntity.game == null) {
                             if (playersList.size() < 2) {
-                                player.displayClientMessage(Component.translatable("game.minopp.play.no_enough_player"), true);
+                                player.displayClientMessage(Component.translatable("game.minopp.play.no_enough_player"),
+                                        true);
                                 return;
                             }
                             tableEntity.startGame(cardPlayer);
                         }
                     }
                     case 0 -> {
-                        if (tableEntity.game != null) tableEntity.destroyGame(cardPlayer);
+                        if (tableEntity.game != null)
+                            tableEntity.destroyGame(cardPlayer);
                     }
                     case -1 -> {
-                        if (tableEntity.game == null) tableEntity.resetSeats(cardPlayer);
+                        if (tableEntity.game == null)
+                            tableEntity.resetSeats(cardPlayer);
+                    }
+                    case 2 -> {
+                        if (tableEntity.game == null) {
+                            tableEntity.rules.put(ruleName, ruleValue);
+                            tableEntity.sync();
+                        }
                     }
                 }
             }
@@ -74,5 +86,14 @@ public class C2SSeatControlPacket {
             packet.writeInt(-1);
             ClientPlatform.sendPacketToServer(ID, packet);
         }
+
+        public static void sendRuleC2S(BlockPos gamePos, String ruleName, boolean value) {
+            FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+            packet.writeBlockPos(gamePos);
+            packet.writeInt(2);
+            packet.writeUtf(ruleName);
+            packet.writeBoolean(value);
+            ClientPlatform.sendPacketToServer(ID, packet);
+    }
     }
 }
