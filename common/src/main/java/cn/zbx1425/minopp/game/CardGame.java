@@ -89,9 +89,12 @@ public ActionReport playCard(CardPlayer cardPlayer, Card card, Card.Suit wildSel
             return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
     }
     // If there's a draw penalty, player must stack with matching draw card
-    if (drawCount > 0 && !(card.family == Card.Family.DRAW && card.number == topCard.number)) {
+if (drawCount > 0) {
+    boolean isMatchingDraw = card.family == Card.Family.DRAW && card.number == topCard.number;
+    if (!tableEntity.getRule(BlockEntityMinoTable.RULE_STACKING, true) || !isMatchingDraw) {
         return report.fail(Component.translatable("game.minopp.play.must_stack_or_draw"));
     }
+}
     if (!card.canPlayOn(topCard))
         return report.fail(Component.translatable("game.minopp.play.invalid_card"));
 
@@ -200,7 +203,8 @@ public ActionReport resolveDrawPenalty() {
     CardPlayer currentPlayer = players.get(currentPlayerIndex);
 
     // Checks if current top card is a draw card and player has matching one
-    boolean canStack = topCard.family == Card.Family.DRAW &&
+    boolean canStack = tableEntity.getRule(BlockEntityMinoTable.RULE_STACKING, true) &&
+            topCard.family == Card.Family.DRAW &&
             currentPlayer.hand.stream().anyMatch(c ->
                 c.family == Card.Family.DRAW && c.number == topCard.number);
 
@@ -208,7 +212,9 @@ public ActionReport resolveDrawPenalty() {
 
     ActionReport report = ActionReport.builder(this, currentPlayer);
     int penalty = drawCount;
-    doDrawCard(currentPlayer, penalty, report);
+    if (!doDrawCard(currentPlayer, penalty, report)) {
+    return report.panic(Component.translatable("game.minopp.play.deck_depleted"));
+    }
     topCard = topCard.withEquivFamily(Card.Family.NUMBER);
     drawCount = 0;
     advanceTurn(report);

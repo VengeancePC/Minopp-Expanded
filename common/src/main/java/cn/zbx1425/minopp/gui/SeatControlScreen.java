@@ -126,7 +126,8 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
             int headerHeight = 9 + 12;
 
             String[][] rulesList = {
-                    { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" }
+                    { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" },
+                    { BlockEntityMinoTable.RULE_STACKING, "Allow Stacking" }
             };
 
             for (int i = 0; i < rulesList.length; i++) {
@@ -182,7 +183,8 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
                 int headerHeight = 9 + 12;
 
                 String[][] rulesList = {
-                        { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" }
+                        { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" },
+                        { BlockEntityMinoTable.RULE_STACKING, "Allow Stacking" }
                 };
 
                 int sideWidth = 140;

@@ -58,6 +58,7 @@ public class BlockEntityMinoTable extends BlockEntity {
 }
 
     public static final String RULE_JUMP_IN = "allowJumpIn";
+    public static final String RULE_STACKING = "allowStacking";
     
 
 
@@ -145,6 +146,7 @@ public class BlockEntityMinoTable extends BlockEntity {
 
         // Default values for missing rules
         rules.putIfAbsent(RULE_JUMP_IN, true);
+        rules.putIfAbsent(RULE_STACKING, true);
     }
 
     public List<CardPlayer> getPlayersList() {
