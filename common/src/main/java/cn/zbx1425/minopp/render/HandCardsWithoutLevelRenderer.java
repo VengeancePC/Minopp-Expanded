@@ -4,6 +4,7 @@ import cn.zbx1425.minopp.Mino;
 import cn.zbx1425.minopp.block.BlockEntityMinoTable;
 import cn.zbx1425.minopp.block.BlockMinoTable;
 import cn.zbx1425.minopp.game.CardPlayer;
+import cn.zbx1425.minopp.game.Card;
 import cn.zbx1425.minopp.item.ItemDataUtils;
 import cn.zbx1425.minopp.platform.RegistryObject;
 import com.mojang.blaze3d.vertex.PoseStack;

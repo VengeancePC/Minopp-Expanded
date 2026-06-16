@@ -9,6 +9,7 @@
   "game.minopp.play.no_enough_player": "Not enough participants to start the game.",
   "game.minopp.play.not_your_turn": "It's not your turn.",
   "game.minopp.play.not_your_card": "You don't have this card.",
+  "game.minopp.play.not_match_cut": "This does not match the top card.",
   "game.minopp.play.must_draw": "You must draw a card right now.",
   "game.minopp.play.invalid_card": "This card doesn't apply to the top card.",
   "game.minopp.play.no_draw": "You can't draw a card right now.",
@@ -117,5 +118,7 @@
   "gui.minopp.bot_config.start_game": "Proposes Starting the Game",
   "gui.minopp.bot_config.start_game.summary": "If the bot should automatically propose starting the game when enough players are seated.",
   "gui.minopp.bot_config.remove": "Dismantle",
-  "gui.minopp.bot_config.yacl_missing": "YetAnotherConfigLib is required to show the configuration screen. Please install it and then try again."
+  "gui.minopp.bot_config.yacl_missing": "YetAnotherConfigLib is required to show the configuration screen. Please install it and then try again.",
+
+  "game.minopp.debug.test": "Debug: You cannot play this card during the cut-in window."
 }

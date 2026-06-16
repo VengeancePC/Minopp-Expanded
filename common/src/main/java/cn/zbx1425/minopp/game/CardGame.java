@@ -34,10 +34,25 @@ public class CardGame {
     public BlockEntityMinoTable tableEntity;
 
     public boolean isAntiClockwise;
+    public boolean awaitingCutIn;
 
     public List<Card> deck = new ArrayList<>();
     public List<Card> discardDeck = new ArrayList<>();
     public Card topCard;
+
+public boolean anyOtherPlayerCanCutIn() {
+    for (int i = 0; i < players.size(); i++) {
+        if (i == currentPlayerIndex) continue;
+        CardPlayer other = players.get(i);
+        if (tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true) && other.hand.stream().anyMatch(c ->
+                c.getEquivFamily() == topCard.getEquivFamily() &&
+                c.getEquivSuit() == topCard.getEquivSuit() &&
+                c.number == topCard.number)) {
+            return true;
+        }
+    }
+    return false;
+}
 
     public CardGame(List<CardPlayer> players) {
         this.players = players;
@@ -70,71 +85,77 @@ public class CardGame {
                 .gameStarted();
     }
 
-public ActionReport playCard(CardPlayer cardPlayer, Card card, Card.Suit wildSelection, boolean shout) {
-    ActionReport report = ActionReport.builder(this, cardPlayer);
-    int playerIndex = players.indexOf(cardPlayer);
-    if (playerIndex == -1)
-        return report.fail(Component.translatable("game.minopp.play.no_player"));
-    if (!cardPlayer.hand.contains(card))
-        return report.fail(Component.translatable("game.minopp.play.not_your_card"));
-    boolean isCut = false;
-    // Cut
-    if (topCard.equals(card) && playerIndex != currentPlayerIndex) {
-        if (!tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true)) {
-            return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
-        }
-        isCut = true;
-    } else {
-        if (playerIndex != currentPlayerIndex)
-            return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
-    }
-    // If there's a draw penalty, player must stack with matching draw card
-if (drawCount > 0) {
-    boolean isMatchingDraw = card.family == Card.Family.DRAW && card.number == topCard.number;
-    if (!tableEntity.getRule(BlockEntityMinoTable.RULE_STACKING, true) || !isMatchingDraw) {
-        return report.fail(Component.translatable("game.minopp.play.must_stack_or_draw"));
-    }
-}
-    if (!card.canPlayOn(topCard))
-        return report.fail(Component.translatable("game.minopp.play.invalid_card"));
+    public ActionReport playCard(CardPlayer cardPlayer, Card card, Card.Suit wildSelection, boolean shout) {
+        ActionReport report = ActionReport.builder(this, cardPlayer);
+        int playerIndex = players.indexOf(cardPlayer);
 
-    if (isCut)
-        currentPlayerIndex = playerIndex;
-    doDiscardCard(cardPlayer, card, report);
-    if (cardPlayer.hand.isEmpty()) {
-        report.effect(new PlayerGlowEffectEvent(cardPlayer.uuid, 6 * 20));
-        report.effect(new GrantRewardEffectEvent(cardPlayer.uuid));
-        for (int i = 0; i < 5; i++) {
-            report.effect(new PlayerFireworkEffectEvent(i * 1000 + 500, cardPlayer.uuid));
+        // hard early check for jump in to stop players playing during the cut-in window
+        if (awaitingCutIn && !(topCard.equals(card) && tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true))) {
+            return report.fail(Component.translatable("game.minopp.play.not_match_cut"));
         }
-        return report.gameWon();
-    }
-    if (card.suit == Card.Suit.WILD) {
-        topCard = topCard.withEquivSuit(wildSelection);
-    }
-    switch (card.family) {
-        case SKIP -> isSkipping = true;
-        case REVERSE -> {
-            if (players.size() == 2) {
-                isSkipping = true;
-            } else {
-                isAntiClockwise = !isAntiClockwise;
+
+        if (playerIndex == -1)
+            return report.fail(Component.translatable("game.minopp.play.no_player"));
+        if (!cardPlayer.hand.contains(card))
+            return report.fail(Component.translatable("game.minopp.play.not_your_card"));
+        boolean isCut = false;
+        // Cut
+        if (awaitingCutIn && playerIndex != currentPlayerIndex) {
+            if (!tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true)) {
+                return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+            }
+            isCut = true;
+        } else {
+            if (awaitingCutIn || playerIndex != currentPlayerIndex)
+                return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+        }
+        // If there's a draw penalty, player must stack with matching draw card
+        if (drawCount > 0) {
+            boolean isMatchingDraw = card.family == Card.Family.DRAW && card.number == topCard.number;
+            if (!tableEntity.getRule(BlockEntityMinoTable.RULE_STACKING, true) || !isMatchingDraw) {
+                return report.fail(Component.translatable("game.minopp.play.must_stack_or_draw"));
             }
         }
-        case DRAW -> drawCount -= card.number;
+        if (!card.canPlayOn(topCard))
+            return report.fail(Component.translatable("game.minopp.play.invalid_card"));
+
+        if (isCut)
+            currentPlayerIndex = playerIndex;
+        doDiscardCard(cardPlayer, card, report);
+        if (cardPlayer.hand.isEmpty()) {
+            report.effect(new PlayerGlowEffectEvent(cardPlayer.uuid, 6 * 20));
+            report.effect(new GrantRewardEffectEvent(cardPlayer.uuid));
+            for (int i = 0; i < 5; i++) {
+                report.effect(new PlayerFireworkEffectEvent(i * 1000 + 500, cardPlayer.uuid));
+            }
+            return report.gameWon();
+        }
+        if (card.suit == Card.Suit.WILD) {
+            topCard = topCard.withEquivSuit(wildSelection);
+        }
+        switch (card.family) {
+            case SKIP -> isSkipping = true;
+            case REVERSE -> {
+                if (players.size() == 2) {
+                    isSkipping = true;
+                } else {
+                    isAntiClockwise = !isAntiClockwise;
+                }
+            }
+            case DRAW -> drawCount -= card.number;
+        }
+        if (shout) {
+            report.combineWith(shoutMino(cardPlayer));
+        }
+        advanceTurn(report);
+        return isCut ? report.cut() : report.played();
     }
-    if (shout) {
-        report.combineWith(shoutMino(cardPlayer));
-    }
-    advanceTurn(report);
-    return isCut ? report.cut() : report.played();
-}
 
 public ActionReport playNoCard(CardPlayer cardPlayer) {
     ActionReport report = ActionReport.builder(this, cardPlayer);
     int playerIndex = players.indexOf(cardPlayer);
     if (playerIndex == -1) return report.fail(Component.translatable("game.minopp.play.no_player"));
-    if (playerIndex != currentPlayerIndex) return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
+    if (playerIndex != currentPlayerIndex || awaitingCutIn) return report.fail(Component.translatable("game.minopp.play.not_your_turn"));
 
     if (currentPlayerPhase == PlayerActionPhase.DISCARD_HAND) {
         int drawCount = this.drawCount == 0 ? 1 : this.drawCount;
@@ -220,6 +241,7 @@ public ActionReport resolveDrawPenalty() {
     advanceTurn(report);
     return report;
 }
+
     public void doDiscardCard(CardPlayer player, Card card, ActionReport report) {
         discardDeck.add(topCard.eraseEquiv());
         topCard = card;
@@ -246,12 +268,22 @@ public ActionReport resolveDrawPenalty() {
         return true;
     }
 
+
 public void advanceTurn(ActionReport report) {
     currentPlayerPhase = PlayerActionPhase.DISCARD_HAND;
     if (isSkipping) currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
     currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
     if (currentPlayerIndex < 0) currentPlayerIndex += players.size();
     isSkipping = false;
+
+    // trigger for jump-in, if true then it locks for 5 seconds to allow jump-ins
+    if (anyOtherPlayerCanCutIn()) {
+        awaitingCutIn = true;
+        TaskScheduler.Holder.INSTANCE.schedule(100, () -> {
+            awaitingCutIn = false;
+        });
+        return;
+    }
 
     CardPlayer currentPlayer = players.get(currentPlayerIndex);
     currentPlayer.hasShoutedMino = false;
@@ -276,7 +308,7 @@ public void advanceTurn(ActionReport report) {
             nextPlayer.hasShoutedMino = false;
             report.sound(NOTE_BASS, 1000, nextPlayer);
         }
-    
+
     }
 }
 
@@ -296,6 +328,7 @@ public CardPlayer deAmputate(UUID uuid) {
         currentPlayerIndex = tag.getInt("currentPlayer");
         drawCount = tag.getInt("drawCount");
         isSkipping = tag.getBoolean("isSkipping");
+        awaitingCutIn = tag.getBoolean("awaitingCutIn");
         currentPlayerPhase = PlayerActionPhase.valueOf(tag.getString("currentPlayerPhase"));
         isAntiClockwise = tag.getBoolean("isAntiClockwise");
         deck = new ArrayList<>(tag.getList("deck", CompoundTag.TAG_COMPOUND).stream().map(t -> new Card((CompoundTag) t)).toList());
@@ -309,6 +342,7 @@ public CardPlayer deAmputate(UUID uuid) {
         tag.putInt("currentPlayer", currentPlayerIndex);
         tag.putInt("drawCount", drawCount);
         tag.putBoolean("isSkipping", isSkipping);
+        tag.putBoolean("awaitingCutIn", awaitingCutIn);
         tag.putString("currentPlayerPhase", currentPlayerPhase.name());
         tag.putBoolean("isAntiClockwise", isAntiClockwise);
         ListTag deckTag = new ListTag();

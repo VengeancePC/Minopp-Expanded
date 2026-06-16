@@ -39,11 +39,6 @@ public class GameOverlayLayer {
     private double zoomAnimationTarget = 0;
     private final Long2FloatArrayMap handCardCurrentXOff = new Long2FloatArrayMap();
 
-    // Jump-in related values
-    private long jumpInWindowStart = -1;
-    private Card jumpInCard = null;
-    private static final long JUMP_IN_WINDOW_MS = 3000; // 3 seconds
-
     public void render(GuiGraphics guiGraphics, float partialTicks) {
         LocalPlayer player = Minecraft.getInstance().player;
         BlockPos handCardGamePos = ItemHandCards.getHandCardGamePos(player);
@@ -127,33 +122,6 @@ public class GameOverlayLayer {
         }
         y += font.lineHeight;
 
-        // checks you are not current player and checks if jump-in is avaliable or not
-            if (!currentPlayer.equals(cardPlayer)) {
-        CardPlayer realPlayer = tableEntity.game.players.stream()
-            .filter(p -> p.equals(cardPlayer)).findFirst().orElse(null);
-        if (realPlayer != null) {
-            Card matchingCard = realPlayer.hand.stream()
-                .filter(c -> c.equals(tableEntity.game.topCard))
-                .findFirst().orElse(null);
-            if (matchingCard != null) {
-                if (jumpInCard == null || !jumpInCard.equals(matchingCard)) {
-                    jumpInWindowStart = System.currentTimeMillis();
-                    jumpInCard = matchingCard;
-                }
-                // runs a brief window to prompt a jump-in is avaliable
-                long remaining = getJumpInRemaining();
-                if (remaining > 0) {
-                    drawStringWithBackdrop(guiGraphics, font,
-                        Component.literal("Jump in! " + (remaining / 1000 + 1) + "s"),
-                        x, y, 0xFFFFAA00);
-                } else {
-                    jumpInCard = null;
-                }
-            } else {
-                jumpInCard = null;
-            }
-        }
-    }
         MutableComponent auxInfo = Component.translatable("gui.minopp.play.direction." + (tableEntity.game.isAntiClockwise ? "ccw" : "cw"));
         if (tableEntity.game.drawCount > 0) {
             auxInfo = auxInfo.append(", ").append(Component.translatable("gui.minopp.play.draw_accumulate", tableEntity.game.drawCount));
@@ -234,17 +202,6 @@ public class GameOverlayLayer {
     }
 
     
-    public long getJumpInRemaining() {
-        if (jumpInCard == null || jumpInWindowStart < 0) {
-            return 0;
-        }
-
-        return Math.max(
-            0,
-            JUMP_IN_WINDOW_MS - (System.currentTimeMillis() - jumpInWindowStart)
-        );
-    }
-    
     private static void drawStringWithBackdrop(GuiGraphics guiGraphics, Font font, Component component, int x, int y, int color) {
         int i = (int)(0.4 * 255.0F) << 24 & -16777216;
         int var10001 = x - 2;
@@ -258,33 +215,43 @@ public class GameOverlayLayer {
 
     /**
      * Render hand cards on the screen
+     * 
      * @return whether the hand cards are rendered
      */
     private boolean renderHandCards(GuiGraphics guiGraphics, float partialTicks) {
-        if (Minecraft.getInstance().options.hideGui) return false;
+        if (Minecraft.getInstance().options.hideGui)
+            return false;
 
+   
         Font font = Minecraft.getInstance().font;
         LocalPlayer player = Minecraft.getInstance().player;
         ClientLevel level = Minecraft.getInstance().level;
         BlockPos gamePos = ItemHandCards.getHandCardGamePos(player);
-        if (gamePos == null) return false;
-        BlockEntityMinoTable tableEntity = (BlockEntityMinoTable)level.getBlockEntity(gamePos);
+        if (gamePos == null)
+            return false;
+        BlockEntityMinoTable tableEntity = (BlockEntityMinoTable) level.getBlockEntity(gamePos);
         CardPlayer playerWithoutHand = ItemHandCards.getCardPlayer(player);
-
+        int currentPlayer = tableEntity.game.currentPlayerIndex;
+        int selectPlayer = tableEntity.game.players.indexOf(player);
         final int CARD_V_SPACING = 20;
-        final int CARD_WIDTH = (int)(100.0 * Mth.lerp(zoomAnimationProgress, 0.93, 1.0));
-        final int CARD_HEIGHT = (int)(CARD_WIDTH * 8.9 / 5.6);
+        final int CARD_WIDTH = (int) (100.0 * Mth.lerp(zoomAnimationProgress, 0.93, 1.0));
+        final int CARD_HEIGHT = (int) (CARD_WIDTH * 8.9 / 5.6);
 
-        if (tableEntity.game == null) return false;
-        CardPlayer realPlayer = tableEntity.game.players.stream().filter(p -> p.equals(playerWithoutHand)).findFirst().orElse(null);
-        if (realPlayer == null) return false;
+        if (tableEntity.game == null)
+            return false;
+        CardPlayer realPlayer = tableEntity.game.players.stream().filter(p -> p.equals(playerWithoutHand)).findFirst()
+                .orElse(null);
+        if (realPlayer == null)
+            return false;
         int clientHandIndex = Mth.clamp(ItemHandCards.getClientHandIndex(player), 0, realPlayer.hand.size() - 1);
+
 
         // Compute some hashes for hand cards, for the sake of animation
         realPlayer.hand.sort(Card::compareTo);
         LongArrayList handCardHashes = new LongArrayList();
         for (Card card : realPlayer.hand) {
-            if (!handCardHashes.isEmpty() && card.hashCode() == (handCardHashes.get(handCardHashes.size() - 1) & 0xFFFFFFFFL)) {
+            if (!handCardHashes.isEmpty()
+                    && card.hashCode() == (handCardHashes.get(handCardHashes.size() - 1) & 0xFFFFFFFFL)) {
                 // Tell duplicate identical cards apart; the list's already sorted
                 handCardHashes.add(handCardHashes.get(handCardHashes.size() - 1) + 0x100000000L);
             } else {
@@ -301,11 +268,14 @@ public class GameOverlayLayer {
         int cardDrawOffset = selectedCardYRaw < 20 ? 20 - selectedCardYRaw : 0;
         Random cardRandom = new Random(handSize);
         for (int i = 0; i < handSize; i++) {
+    
+
             int targetXOff = (i == clientHandIndex ? -30 : 0) + cardRandom.nextInt(-3, 4);
-            float currentXOff = handCardCurrentXOff.computeIfAbsent(handCardHashes.getLong(i), ignored -> CARD_WIDTH + 10);
-            int x = width - 10 - CARD_WIDTH + (int)currentXOff;
+            float currentXOff = handCardCurrentXOff.computeIfAbsent(handCardHashes.getLong(i),
+                    ignored -> CARD_WIDTH + 10);
+            int x = width - 10 - CARD_WIDTH + (int) currentXOff;
             handCardCurrentXOff.put(handCardHashes.getLong(i),
-                    (float)Mth.lerp(8 * 0.05 * partialTicks,
+                    (float) Mth.lerp(8 * 0.05 * partialTicks,
                             currentXOff, targetXOff));
             int y = height - ((CARD_HEIGHT / 2) + CARD_V_SPACING * (handSize - i)) + cardDrawOffset;
             if (i == clientHandIndex) {
@@ -328,8 +298,9 @@ public class GameOverlayLayer {
             int cardVH = 25;
 
             float shadowAlpha = (float) Math.max(Mth.lerp(zoomAnimationProgress, 0.5, 0), 0);
-
-//            guiGraphics.fill(x + 3, y + 3, x + CARD_WIDTH - 3, y + CARD_HEIGHT - 3, card.suit.color);
+            
+            // guiGraphics.fill(x + 3, y + 3, x + CARD_WIDTH - 3, y + CARD_HEIGHT - 3,
+            // card.suit.color);
             guiGraphics.blit(ATLAS_LOCATION, x + 5, y + 5, CARD_WIDTH - 10, CARD_HEIGHT - 10,
                     cardU + 1, cardV + 1, cardUW - 2, cardVH - 2, 256, 128);
             guiGraphics.pose().pushPose();
@@ -342,16 +313,29 @@ public class GameOverlayLayer {
             } else if (card.suit == Card.Suit.WILD && card.family == Card.Family.NUMBER) {
                 guiGraphics.blit(ATLAS_LOCATION, 0, 0, 228, 0, 10, 10, 256, 128);
             } else {
-                Component cardName = card.getCardFaceName().copy().withStyle(Style.EMPTY.withFont(new ResourceLocation("include/default")));
+                Component cardName = card.getCardFaceName().copy()
+                        .withStyle(Style.EMPTY.withFont(new ResourceLocation("include/default")));
                 // blend color with shadowAlpha
-                int colorA = (int)(0x22 * shadowAlpha + 0xFF * (1 - shadowAlpha));
+                int colorA = (int) (0x22 * shadowAlpha + 0xFF * (1 - shadowAlpha));
                 guiGraphics.drawString(font, cardName, 0, 0, 0xFF000000 + colorA * 0x10101);
             }
-
             guiGraphics.pose().popPose();
             guiGraphics.pose().pushPose();
-            guiGraphics.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0x222222 | ((int)(0xFF * shadowAlpha) << 24));
+            guiGraphics.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0x222222 | ((int) (0xFF * shadowAlpha) << 24));
             guiGraphics.pose().popPose();
+
+            if (tableEntity.game.awaitingCutIn && currentPlayer != selectPlayer) {
+                Card topCard = tableEntity.game.topCard;
+                boolean canCutInWithThisCard = card.getEquivFamily() == topCard.getEquivFamily()
+                        && card.getEquivSuit() == topCard.getEquivSuit()
+                        && card.number == topCard.number;
+                if (canCutInWithThisCard) {
+                    float pulse = (float) (0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 150.0));
+                    int highlightAlpha = (int) (0x90 * pulse);
+                    guiGraphics.fill(x - 2, y - 2, x + CARD_WIDTH + 2, y + CARD_HEIGHT + 2,
+                            (highlightAlpha << 24) | 0xFFD700);
+                }
+            }
         }
 
         RenderSystem.disableBlend();

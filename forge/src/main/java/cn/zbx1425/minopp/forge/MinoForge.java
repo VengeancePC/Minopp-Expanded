@@ -9,6 +9,8 @@ import cn.zbx1425.minopp.forge.config.ForgeClientConfig;
 import cn.zbx1425.minopp.platform.forge.CompatPacket;
 import cn.zbx1425.minopp.platform.forge.CompatPacketRegistry;
 import cn.zbx1425.minopp.platform.forge.RegistriesWrapperImpl;
+import cn.zbx1425.minopp.platform.forge.SchedulerTask;
+import cn.zbx1425.minopp.game.TaskScheduler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -47,6 +49,9 @@ public final class MinoForge {
         eventBus.register(ModEventBusListener.class);
 
         MinecraftForge.EVENT_BUS.register(ForgeEventBusListener.class);
+
+        TaskScheduler.Holder.INSTANCE = new SchedulerTask();
+        MinecraftForge.EVENT_BUS.register(SchedulerTask.class);
 
         NETWORK.registerMessage(0, CompatPacket.class, CompatPacket::encode, CompatPacket::decode, CompatPacket::handle);
 
