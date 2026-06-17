@@ -40,19 +40,45 @@ public class CardGame {
     public List<Card> discardDeck = new ArrayList<>();
     public Card topCard;
 
-public boolean anyOtherPlayerCanCutIn() {
-    for (int i = 0; i < players.size(); i++) {
-        if (i == currentPlayerIndex) continue;
-        CardPlayer other = players.get(i);
-        if (tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true) && other.hand.stream().anyMatch(c ->
-                c.getEquivFamily() == topCard.getEquivFamily() &&
-                c.getEquivSuit() == topCard.getEquivSuit() &&
-                c.number == topCard.number)) {
-            return true;
+    public boolean anyOtherPlayerCanCutIn() {
+        for (int i = 0; i < players.size(); i++) {
+            if (i == currentPlayerIndex)
+                continue;
+            CardPlayer other = players.get(i);
+            if (tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true) && other.hand.stream()
+                    .anyMatch(c -> c.getEquivFamily() == topCard.getEquivFamily() &&
+                            c.getEquivSuit() == topCard.getEquivSuit() &&
+                            c.number == topCard.number)) {
+                return true;
+            }
         }
+        return false;
     }
-    return false;
-}
+
+    private void cardsRotate(int steps, ActionReport report) {
+        int size = players.size();
+        if (size <= 1)
+            return;
+
+        List<List<Card>> oldHands = new ArrayList<>();
+        for (CardPlayer p : players) {
+            oldHands.add(new ArrayList<>(p.hand));
+            p.hand.clear();
+        }
+
+        for (int i = 0; i < size; i++) {
+            int targetIndex;
+            
+            if (isAntiClockwise) {
+                targetIndex = (i - steps + size) % size;
+            } else {
+                targetIndex = (i + steps) % size;
+            }
+            players.get(targetIndex).hand.addAll(oldHands.get(i));
+            
+        }
+     
+    }
 
     public CardGame(List<CardPlayer> players) {
         this.players = players;
@@ -146,6 +172,13 @@ public boolean anyOtherPlayerCanCutIn() {
         }
         if (shout) {
             report.combineWith(shoutMino(cardPlayer));
+        }
+
+        if (card.number == 0 && !cardPlayer.hand.isEmpty()) {
+            for (CardPlayer p : players) {
+                report.sound(Mino.id("game.hand_change"), 500, p);
+            }
+            cardsRotate(1, report);
         }
         advanceTurn(report);
         return isCut ? report.cut() : report.played();
@@ -287,7 +320,10 @@ public void advanceTurn(ActionReport report) {
 
     CardPlayer currentPlayer = players.get(currentPlayerIndex);
     currentPlayer.hasShoutedMino = false;
+
+    if (topCard.number != 0) {
     report.sound(NOTE_BASS, 500, currentPlayer);
+    }
 
     // Auto-draw if next player has penalty and can't stack
     if (drawCount < 0) {
@@ -302,11 +338,14 @@ public void advanceTurn(ActionReport report) {
             currentPlayerPhase = PlayerActionPhase.DISCARD_HAND;
             if (isSkipping) currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
             currentPlayerIndex = (currentPlayerIndex + (isAntiClockwise ? -1 : 1)) % players.size();
-            if (currentPlayerIndex < 0) currentPlayerIndex += players.size();
+            if (currentPlayerIndex < 0)
+                currentPlayerIndex += players.size();
             isSkipping = false;
             CardPlayer nextPlayer = players.get(currentPlayerIndex);
             nextPlayer.hasShoutedMino = false;
-            report.sound(NOTE_BASS, 1000, nextPlayer);
+            if (topCard.number != 0) {
+                report.sound(NOTE_BASS, 1000, currentPlayer);
+            }
         }
 
     }

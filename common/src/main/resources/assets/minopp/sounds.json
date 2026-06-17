@@ -9,5 +9,6 @@
   "game.win": { "sounds": [ "minopp:win" ], "subtitle": "subtitles.minopp.win" },
   "game.mino_shout": { "sounds": [ "minopp:mino_shout" ], "subtitle": "subtitles.minopp.mino_shout" },
   "game.mino_shout_invalid": { "sounds": [ "minopp:mino_shout_invalid" ], "subtitle": "subtitles.minopp.mino_shout_invalid" },
-  "game.doubt_success": { "sounds": [ "minopp:doubt_success" ], "subtitle": "subtitles.minopp.doubt_success" }
+  "game.doubt_success": { "sounds": [ "minopp:doubt_success" ], "subtitle": "subtitles.minopp.doubt_success" },
+  "game.hand_change": { "sounds": [ "minopp:hand_change" ], "subtitle": "subtitles.minopp.hand_change" }
 }
