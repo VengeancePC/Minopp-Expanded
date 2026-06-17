@@ -201,8 +201,8 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
 
                 guiGraphics.fill(sideX - 1, sideY - 1, sideX + sideWidth + 1, sideY + sideHeight + 1, 0xCC000000);
                 guiGraphics.fill(sideX, sideY, sideX + sideWidth, sideY + sideHeight, 0xFF313031);
-                guiGraphics.fill(sideX, sideY - 6, sideX + sideWidth, sideY + 9 + 6, 0x99000000);
-                guiGraphics.drawString(font, "Settings", sideX + 6, sideY + 6, 0xFFFFFFFF);
+                guiGraphics.fill(sideX, sideY + MARGIN - 6, sideX + sideWidth, sideY + MARGIN + 9 + 6, 0x99000000);
+                guiGraphics.drawString(font, "Settings", sideX + 6, sideY + MARGIN, 0xFFFFFFFF);
 
                 for (int i = 0; i < rulesList.length; i++) {
                     String ruleKey = rulesList[i][0];
