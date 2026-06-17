@@ -77,7 +77,7 @@ public final class MinoForge {
             if (event.getConfig().getType() == ModConfig.Type.CLIENT) {
             cn.zbx1425.minopp.config.ClientConfig.GUI_X_POSITION = ForgeClientConfig.GUI_X_POSITION.get();
             cn.zbx1425.minopp.config.ClientConfig.GUI_Y_POSITION = ForgeClientConfig.GUI_Y_POSITION.get();
-            cn.zbx1425.minopp.config.ClientConfig.MINIMAL_GUI = ForgeClientConfig.MINIMAL_GUI.get();
+            cn.zbx1425.minopp.config.ClientConfig.ENABLE_GAME_HISTORY_UI = ForgeClientConfig.ENABLE_GAME_HISTORY_UI.get();
             }
         }
 
@@ -86,7 +86,7 @@ public final class MinoForge {
             if (event.getConfig().getType() == ModConfig.Type.CLIENT) {
             cn.zbx1425.minopp.config.ClientConfig.GUI_X_POSITION = ForgeClientConfig.GUI_X_POSITION.get();
             cn.zbx1425.minopp.config.ClientConfig.GUI_Y_POSITION = ForgeClientConfig.GUI_Y_POSITION.get();
-            cn.zbx1425.minopp.config.ClientConfig.MINIMAL_GUI = ForgeClientConfig.MINIMAL_GUI.get();
+            cn.zbx1425.minopp.config.ClientConfig.ENABLE_GAME_HISTORY_UI = ForgeClientConfig.ENABLE_GAME_HISTORY_UI.get();
     }
     }
 }

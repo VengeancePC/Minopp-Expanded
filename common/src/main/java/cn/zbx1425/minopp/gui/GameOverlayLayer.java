@@ -107,7 +107,7 @@ public class GameOverlayLayer {
             zoomAnimationTarget = 0;
         }
 
-        if (Minecraft.getInstance().options.hideGui || !ClientConfig.MINIMAL_GUI)  return;
+        if (Minecraft.getInstance().options.hideGui || !ClientConfig.ENABLE_GAME_HISTORY_UI)  return;
         // defines game GUI position, listing game actions (by default top left), negative goes left, positive goes right for X
         int x = ClientConfig.GUI_X_POSITION, y = ClientConfig.GUI_Y_POSITION;
 
