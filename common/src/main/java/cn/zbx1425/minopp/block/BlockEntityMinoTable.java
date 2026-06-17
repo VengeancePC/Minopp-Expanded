@@ -276,6 +276,24 @@ public class BlockEntityMinoTable extends BlockEntity {
         sync();
     }
 
+    public boolean validateSeatedPlayers() {
+        boolean changed = false;
+        for (Direction direction : PLAYER_ORDER) {
+            CardPlayer seated = players.get(direction);
+            if (seated == null)
+                continue;
+            Player mcPlayer = level.getPlayerByUUID(seated.uuid);
+            if (mcPlayer == null) {
+                players.put(direction, null);
+                changed = true;
+            }
+        }
+        if (changed) {
+            sync();
+        }
+        return changed;
+    }
+
     public void resetSeats(CardPlayer initiator) {
         sendSeatActionTakenToAll();
         players.replaceAll((d, v) -> null);

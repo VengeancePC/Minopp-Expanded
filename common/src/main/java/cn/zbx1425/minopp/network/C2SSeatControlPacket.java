@@ -66,9 +66,15 @@ public class C2SSeatControlPacket {
                             tableEntity.sync();
                         }
                     }
+                    case 3 -> {
+                        if (tableEntity.game == null) {
+                            tableEntity.validateSeatedPlayers();
+                        }
+                    }                   
+                    }
                 }
             }
-        });
+        );
     }
 
     public static class Client {
@@ -94,6 +100,13 @@ public class C2SSeatControlPacket {
             packet.writeUtf(ruleName);
             packet.writeBoolean(value);
             ClientPlatform.sendPacketToServer(ID, packet);
-    }
+        }
+
+        public static void sendValidateSeatsC2S(BlockPos gamePos) {
+            FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+            packet.writeBlockPos(gamePos);
+            packet.writeInt(3);
+            ClientPlatform.sendPacketToServer(ID, packet);
+        }
     }
 }
