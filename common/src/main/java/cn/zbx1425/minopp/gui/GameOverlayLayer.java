@@ -162,7 +162,7 @@ public class GameOverlayLayer {
             BlockState hitState = Minecraft.getInstance().level.getBlockState(hitPos);
             if (hitState.is(Mino.BLOCK_MINO_TABLE.get())) {
                 boolean isPass = BlockMinoTable.Client.isCursorHittingPile();
-                if (currentPlayer.equals(cardPlayer)) {
+                if (currentPlayer.equals(cardPlayer) && !(Minecraft.getInstance().screen instanceof SwapHandSelectionScreen)) {
                     Component cursorMessage = switch (tableEntity.game.currentPlayerPhase) {
                         case DISCARD_HAND -> isPass ? Component.translatable("gui.minopp.play.cursor.pass_draw")
                                 : Component.translatable("gui.minopp.play.cursor.play");
@@ -186,6 +186,7 @@ public class GameOverlayLayer {
         }
 
         if (TurnDeadMan.isAlarmActive()) {
+            if (Minecraft.getInstance().screen instanceof SwapHandSelectionScreen) return;
             Component deadManMessage = Component.translatable("gui.minopp.play.cursor.dead_man");
             int width = Minecraft.getInstance().getWindow().getGuiScaledWidth();
             int height = Minecraft.getInstance().getWindow().getGuiScaledHeight();

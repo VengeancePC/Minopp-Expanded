@@ -32,14 +32,6 @@ public class CardGame {
     public PlayerActionPhase currentPlayerPhase;
 
     public BlockEntityMinoTable tableEntity;
-
-    public boolean isAntiClockwise;
-    public boolean awaitingCutIn;
-
-    public List<Card> deck = new ArrayList<>();
-    public List<Card> discardDeck = new ArrayList<>();
-    public Card topCard;
-
     public boolean anyOtherPlayerCanCutIn() {
         for (int i = 0; i < players.size(); i++) {
             if (i == currentPlayerIndex)
@@ -55,29 +47,50 @@ public class CardGame {
         return false;
     }
 
-    private void cardsRotate(int steps, ActionReport report) {
-        int size = players.size();
-        if (size <= 1)
-            return;
+    public boolean isAntiClockwise;
+    public boolean awaitingCutIn;
 
+    public List<Card> deck = new ArrayList<>();
+    public List<Card> discardDeck = new ArrayList<>();
+    public Card topCard;
+
+
+    private void cardsPermute(int[] indexMap, ActionReport report) {
         List<List<Card>> oldHands = new ArrayList<>();
         for (CardPlayer p : players) {
             oldHands.add(new ArrayList<>(p.hand));
             p.hand.clear();
         }
-
-        for (int i = 0; i < size; i++) {
-            int targetIndex;
-            
-            if (isAntiClockwise) {
-                targetIndex = (i - steps + size) % size;
-            } else {
-                targetIndex = (i + steps) % size;
-            }
-            players.get(targetIndex).hand.addAll(oldHands.get(i));
-            
+        for (int i = 0; i < players.size(); i++) {
+            players.get(indexMap[i]).hand.addAll(oldHands.get(i));
         }
-     
+    }
+
+
+    private void cardsRotate(int steps, ActionReport report) {
+        int size = players.size();
+        if (size <= 1)
+            return;
+        int[] indexMap = new int[size];
+        for (int i = 0; i < size; i++) {
+            indexMap[i] = isAntiClockwise ? (i - steps + size) % size : (i + steps) % size;
+        }
+        cardsPermute(indexMap, report);
+    }
+
+    public void swapHands(CardPlayer initiator, CardPlayer target) {
+        int a = players.indexOf(initiator);
+        int b = players.indexOf(target);
+        if (a == -1 || b == -1)
+            return;
+
+        int size = players.size();
+        int[] indexMap = new int[size];
+        for (int i = 0; i < size; i++)
+            indexMap[i] = i;
+        indexMap[a] = b;
+        indexMap[b] = a;
+        cardsPermute(indexMap, null);
     }
 
     public CardGame(List<CardPlayer> players) {
@@ -179,6 +192,12 @@ public class CardGame {
                 report.sound(Mino.id("game.hand_change"), 500, p);
             }
             cardsRotate(1, report);
+        }
+
+        if (card.number == 7 && !cardPlayer.hand.isEmpty()) {
+            for (CardPlayer p : players) {
+                report.sound(Mino.id("game.hand_change"), 500, p);
+            }
         }
         advanceTurn(report);
         return isCut ? report.cut() : report.played();

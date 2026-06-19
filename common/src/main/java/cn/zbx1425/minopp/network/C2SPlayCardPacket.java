@@ -33,40 +33,62 @@ public class C2SPlayCardPacket {
                 final int wildSelectionOrdinal = packet.readInt();
                 final boolean shout = packet.readBoolean();
                 server.execute(() -> {
-                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity)) {
+                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity))
                         return;
-                    }
-                    if (tableEntity.game == null) {
+                    if (tableEntity.game == null)
                         return;
-                    }
                     CardPlayer cardPlayer = tableEntity.game.deAmputate(playerUuid);
-                    if (cardPlayer == null) {
-
+                    if (cardPlayer == null)
                         return;
-                    }
-                    Card.Suit wildSelection = wildSelectionOrdinal == -1 ? null : Card.Suit.values()[wildSelectionOrdinal];
+                    Card.Suit wildSelection = wildSelectionOrdinal == -1 ? null
+                            : Card.Suit.values()[wildSelectionOrdinal];
                     ActionReport result = tableEntity.game.playCard(cardPlayer, card, wildSelection, shout);
                     tableEntity.handleActionResult(result, cardPlayer, player);
                 });
             }
             case 1 -> server.execute(() -> {
-                if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity)) return;
-                if (tableEntity.game == null) return;
+                if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity))
+                    return;
+                if (tableEntity.game == null)
+                    return;
                 CardPlayer cardPlayer = tableEntity.game.deAmputate(playerUuid);
-                if (cardPlayer == null) return;
-
+                if (cardPlayer == null)
+                    return;
                 ActionReport result = tableEntity.game.playNoCard(cardPlayer);
                 tableEntity.handleActionResult(result, cardPlayer, player);
             });
             case 2 -> {
                 UUID targetPlayerUuid = packet.readUUID();
                 server.execute(() -> {
-                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity)) return;
-                    if (tableEntity.game == null) return;
+                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity))
+                        return;
+                    if (tableEntity.game == null)
+                        return;
                     CardPlayer cardPlayer = tableEntity.game.deAmputate(playerUuid);
-                    if (cardPlayer == null) return;
-
+                    if (cardPlayer == null)
+                        return;
                     ActionReport result = tableEntity.game.doubtMino(cardPlayer, targetPlayerUuid);
+                    tableEntity.handleActionResult(result, cardPlayer, player);
+                });
+            }
+            case 3 -> {
+                final Card card = new Card(Objects.requireNonNull(packet.readNbt()));
+                final int wildSelectionOrdinal = packet.readInt();
+                final boolean shout = packet.readBoolean();
+                final UUID targetPlayerUuid = packet.readUUID();
+                server.execute(() -> {
+                    if (!(level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity))
+                        return;
+                    if (tableEntity.game == null)
+                        return;
+                    CardPlayer cardPlayer = tableEntity.game.deAmputate(playerUuid);
+                    if (cardPlayer == null)
+                        return;
+                    Card.Suit wildSelection = wildSelectionOrdinal == -1 ? null
+                            : Card.Suit.values()[wildSelectionOrdinal];
+                    ActionReport result = tableEntity.game.playCard(cardPlayer, card, wildSelection, shout);
+                    CardPlayer targetPlayer = tableEntity.game.deAmputate(targetPlayerUuid);
+                    tableEntity.game.swapHands(cardPlayer, targetPlayer);
                     tableEntity.handleActionResult(result, cardPlayer, player);
                 });
             }
@@ -100,6 +122,18 @@ public class C2SPlayCardPacket {
             packet.writeUUID(player.uuid);
             packet.writeInt(2);
             packet.writeUUID(targetPlayer);
+            ClientPlatform.sendPacketToServer(ID, packet);
+        }
+
+        public static void sendSwapHandC2S(BlockPos gamePos, CardPlayer player, Card card, Card.Suit wildSelection, boolean shout, UUID targetPlayerUuid) {
+            FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
+            packet.writeBlockPos(gamePos);
+            packet.writeUUID(player.uuid);
+            packet.writeInt(3); // new action type
+            packet.writeNbt(card.toTag());
+            packet.writeInt(wildSelection == null ? -1 : wildSelection.ordinal());
+            packet.writeBoolean(shout);
+            packet.writeUUID(targetPlayerUuid); // the swap target
             ClientPlatform.sendPacketToServer(ID, packet);
         }
     }

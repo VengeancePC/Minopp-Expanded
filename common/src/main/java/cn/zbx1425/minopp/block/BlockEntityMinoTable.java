@@ -64,6 +64,17 @@ public class BlockEntityMinoTable extends BlockEntity {
 
     public static final List<Direction> PLAYER_ORDER = List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST);
 
+    public @Nullable Direction getPlayerDirection(UUID uuid) {
+        if (uuid == null)
+            return null;
+        for (Map.Entry<Direction, CardPlayer> entry : players.entrySet()) {
+            if (entry.getValue() != null && uuid.equals(entry.getValue().uuid)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public BlockEntityMinoTable(BlockPos blockPos, BlockState blockState) {
         super(Mino.BLOCK_ENTITY_TYPE_MINO_TABLE.get(), blockPos, blockState);
         for (Direction direction : PLAYER_ORDER) {

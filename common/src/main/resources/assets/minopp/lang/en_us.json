@@ -15,6 +15,7 @@
   "game.minopp.play.no_draw": "You can't draw a card right now.",
   "game.minopp.play.rule_forbid": "You can only play this card when you have no other cards to play.",
   "game.minopp.play.table_in_demo": "This table is only for demonstration and doesn't host games.",
+  "game.minoppp.play.generic_error": "This is not allowed.",
 
   "game.minopp.play.played": "%1$s played %2$s.",
   "game.minopp.play.cut": "%1$s cut in with %2$s.",
@@ -51,6 +52,7 @@
   "game.minopp.card.family.draw": "+%s",
 
   "gui.minopp.wild_selection.title": "Select a color",
+  "gui.minopp.swap_card_selection.title": "Select a player",
   "gui.minopp.play.pass": "Pass",
   "gui.minopp.play.start_hint": "Stand beside the table and right-click to join.",
   "gui.minopp.play.game_active": "Mino++ Game",

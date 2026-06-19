@@ -3,10 +3,12 @@ package cn.zbx1425.minopp.block;
 import cn.zbx1425.minopp.Mino;
 import cn.zbx1425.minopp.MinoClient;
 import cn.zbx1425.minopp.game.Card;
+import cn.zbx1425.minopp.game.CardGame;
 import cn.zbx1425.minopp.game.CardPlayer;
 import cn.zbx1425.minopp.gui.SeatControlScreen;
 import cn.zbx1425.minopp.gui.TurnDeadMan;
 import cn.zbx1425.minopp.gui.WildSelectionScreen;
+import cn.zbx1425.minopp.gui.SwapHandSelectionScreen;
 import cn.zbx1425.minopp.item.ItemDataUtils;
 import cn.zbx1425.minopp.item.ItemHandCards;
 import cn.zbx1425.minopp.mixin.KeyMappingAccessor;
@@ -84,8 +86,13 @@ public class BlockMinoTable extends Block implements EntityBlock {
                             if (selectedCard.suit == Card.Suit.WILD) {
                                 Client.openWildSelectionScreen(corePos, playerWithoutHand, selectedCard, Client.isShoutModifierHeld());
                             } else {
+                                if (selectedCard.number == 7) {
+                                    Client.openSwapHandSelectionScreen(corePos, playerWithoutHand, selectedCard, Client.isShoutModifierHeld(), tableEntity.game);
+                                }
+                              else {
                                 C2SPlayCardPacket.Client.sendPlayCardC2S(corePos, playerWithoutHand, selectedCard,
                                         null, Client.isShoutModifierHeld());
+                                }
                             }
                         }
                         return InteractionResult.SUCCESS;
@@ -116,6 +123,10 @@ public class BlockMinoTable extends Block implements EntityBlock {
 
         public static void openWildSelectionScreen(BlockPos corePos, CardPlayer player, Card selectedCard, boolean shout) {
             Minecraft.getInstance().setScreen(new WildSelectionScreen(corePos, player, selectedCard, shout));
+        }
+
+        public static void openSwapHandSelectionScreen(BlockPos corePos, CardPlayer player, Card selectedCard, boolean shout, CardGame game) {
+            Minecraft.getInstance().setScreen(new SwapHandSelectionScreen(corePos, player, selectedCard, shout, game));
         }
 
         public static void openSeatControlScreen(BlockPos corePos) {
