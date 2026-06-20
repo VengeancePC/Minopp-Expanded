@@ -65,11 +65,6 @@ public class C2SSeatControlPacket {
                             tableEntity.rules.put(ruleName, ruleValue);
                             tableEntity.sync();
                         }
-                    }
-                    case 3 -> {
-                        if (tableEntity.game == null) {
-                            tableEntity.validateSeatedPlayers();
-                        }
                     }                   
                     }
                 }
@@ -99,13 +94,6 @@ public class C2SSeatControlPacket {
             packet.writeInt(2);
             packet.writeUtf(ruleName);
             packet.writeBoolean(value);
-            ClientPlatform.sendPacketToServer(ID, packet);
-        }
-
-        public static void sendValidateSeatsC2S(BlockPos gamePos) {
-            FriendlyByteBuf packet = new FriendlyByteBuf(Unpooled.buffer());
-            packet.writeBlockPos(gamePos);
-            packet.writeInt(3);
             ClientPlatform.sendPacketToServer(ID, packet);
         }
     }

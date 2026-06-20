@@ -47,6 +47,7 @@ public class BlockEntityMinoTable extends BlockEntity {
     public CardGame game = null;
     public ActionMessage state = ActionMessage.NO_GAME;
     public List<Pair<ActionMessage, Long>> clientMessageList = new ArrayList<>();
+    public static final Map<UUID, Long> hideHandUntil = new HashMap<>();
     public ItemStack award = ItemStack.EMPTY;
     public boolean demo = false;
 
@@ -75,6 +76,41 @@ public class BlockEntityMinoTable extends BlockEntity {
         return null;
     }
 
+    public static class HandSwapAnimation {
+        public final Vec3 fromPos;
+        public final Vec3 toPos;
+        public final int cardCount;
+        public final long startTime;
+        public static final long DURATION_MS = 900;
+
+        public HandSwapAnimation(Vec3 fromPos, Vec3 toPos, int cardCount) {
+            this.fromPos = fromPos;
+            this.toPos = toPos;
+            this.cardCount = cardCount * 2;
+            this.startTime = System.currentTimeMillis();
+        }
+
+        public float progress() {
+            return Math.min(1f, (System.currentTimeMillis() - startTime) / (float) DURATION_MS);
+        }
+
+        public boolean isDone() {
+            return progress() >= 1f;
+        }
+    }
+
+    public static final List<HandSwapAnimation> activeAnimations = new ArrayList<>();
+
+    public static Vec3 getSeatLocalPos(Direction dir) {
+        return switch (dir) {
+            case NORTH -> new Vec3(1.5, 0.94, 0);
+            case SOUTH -> new Vec3(1.5, 0.94, 3);
+            case WEST -> new Vec3(0, 0.94, 1.5);
+            case EAST -> new Vec3(3, 0.94, 1.5);
+            default -> new Vec3(1.5, 0.94, 1.5);
+        };
+    }
+
     public BlockEntityMinoTable(BlockPos blockPos, BlockState blockState) {
         super(Mino.BLOCK_ENTITY_TYPE_MINO_TABLE.get(), blockPos, blockState);
         for (Direction direction : PLAYER_ORDER) {
@@ -96,25 +132,24 @@ public class BlockEntityMinoTable extends BlockEntity {
             compoundTag.put("game", game.toTag());
         }
         compoundTag.put("state", state.toTag());
-        if (!award.isEmpty()) compoundTag.put("award", award.save(new CompoundTag()));
+        if (!award.isEmpty())
+            compoundTag.put("award", award.save(new CompoundTag()));
         compoundTag.putBoolean("demo", demo);
-
         CompoundTag rulesTag = new CompoundTag();
         for (Map.Entry<String, Boolean> entry : rules.entrySet()) {
-    rulesTag.putBoolean(entry.getKey(), entry.getValue());
-}
+            rulesTag.putBoolean(entry.getKey(), entry.getValue());
+        }
         compoundTag.put("rules", rulesTag);
-
     }
 
     @Override
     public void load(CompoundTag compoundTag) {
         super.load(compoundTag);
         CompoundTag playersTag = compoundTag.getCompound("players");
-        for (Direction direction : PLAYER_ORDER) {
-            if (playersTag.contains(direction.getSerializedName())) {
-                players.put(direction, new CardPlayer(playersTag.getCompound(direction.getSerializedName())));
-            } else {
+            for (Direction direction : PLAYER_ORDER) {
+                if (playersTag.contains(direction.getSerializedName())) {
+                    players.put(direction, new CardPlayer(playersTag.getCompound(direction.getSerializedName())));
+                } else {
                 players.put(direction, null);
             }
         }

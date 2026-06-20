@@ -45,6 +45,10 @@ public class HandCardsWithoutLevelRenderer extends BlockEntityWithoutLevelRender
             case THIRD_PERSON_LEFT_HAND, THIRD_PERSON_RIGHT_HAND -> {
                 BlockPos tablePos = ItemDataUtils.getBlockPos(itemStack);
                 UUID bearerId = ItemDataUtils.getBearerId(itemStack);
+                Long hideUntil = BlockEntityMinoTable.hideHandUntil.get(bearerId);
+                if (hideUntil != null && System.currentTimeMillis() < hideUntil) {
+                        return; // don't render hand during animation
+                }
                 if (tablePos == null) return;
                 ClientLevel level = Minecraft.getInstance().level;
                 BlockState blockState = level.getBlockState(tablePos);

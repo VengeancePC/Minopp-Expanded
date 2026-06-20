@@ -92,33 +92,49 @@ public class SwapHandSelectionScreen extends Screen {
         super.init();
         int cx = width / 2;
         int cy = height / 2;
-
         if (minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
             calculatePlayerDirections(tableEntity);
-
             if (frontDir != null) {
                 String[] slots = { "front", "left", "right" };
                 Direction[] dirs = { frontDir, leftDir, rightDir };
-
                 for (int i = 0; i < slots.length; i++) {
                     String slot = slots[i];
                     Direction targetDir = dirs[i];
                     CardPlayer target = tableEntity.players.get(targetDir);
                     if (target == null)
                         continue;
-
                     int dx = slotX(slot, cx);
                     int dy = slotY(slot, cy);
                     final UUID targetUuid = target.uuid;
-
                     addRenderableWidget(Button.builder(Component.empty(), e -> {
+                        if (minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable animTableEntity) {
+                            Direction fromDir = animTableEntity.getPlayerDirection(player.uuid);
+                            Direction toDir = animTableEntity.getPlayerDirection(targetUuid);
+                            if (fromDir != null && toDir != null) {
+                                CardPlayer fromPlayer = animTableEntity.game.deAmputate(player.uuid);
+                                CardPlayer toPlayer = animTableEntity.game.deAmputate(targetUuid);
+                                BlockEntityMinoTable.hideHandUntil.put(player.uuid, System.currentTimeMillis()
+                                        + BlockEntityMinoTable.HandSwapAnimation.DURATION_MS);
+                                int fromCount = fromPlayer != null ? fromPlayer.hand.size() : 5;
+                                int toCount = toPlayer != null ? toPlayer.hand.size() : 5;
+                                BlockEntityMinoTable.activeAnimations.add(
+                                        new BlockEntityMinoTable.HandSwapAnimation(
+                                                BlockEntityMinoTable.getSeatLocalPos(fromDir),
+                                                BlockEntityMinoTable.getSeatLocalPos(toDir),
+                                                fromCount));
+                                BlockEntityMinoTable.activeAnimations.add(
+                                        new BlockEntityMinoTable.HandSwapAnimation(
+                                                BlockEntityMinoTable.getSeatLocalPos(toDir),
+                                                BlockEntityMinoTable.getSeatLocalPos(fromDir),
+                                                toCount));
+                            }
+                        }
                         C2SPlayCardPacket.Client.sendSwapHandC2S(gamePos, player, handCard, null, shout, targetUuid);
                         onClose();
                     }).pos(dx - SQUARE_SIZE / 2, dy - SQUARE_SIZE / 2).size(SQUARE_SIZE, SQUARE_SIZE).build());
                 }
             }
         }
-
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), e -> onClose())
                 .pos(cx - 30, cy + FRONT_GAP / 2).size(60, 20).build());
     }

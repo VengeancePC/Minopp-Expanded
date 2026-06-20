@@ -32,7 +32,6 @@ public class SeatControlScreen extends Screen {
     // all gamerules which can be toggled at before a game
     private boolean settingsOpen = false;
     private Button settingsButton;
-    private boolean validationCheck;
 
     private final List<Button> ruleButtons = new ArrayList<>();
 
@@ -87,14 +86,6 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
         clearWidgets();
         int xOff = (width - PANEL_WIDTH) / 2;
         int yOff = (height - PANEL_HEIGHT) / 2;
-
-
-        // fix: adds validation check to clear table names on GUI open, removing stale values
-        if (!validationCheck) {
-            validationCheck = true;
-        if (minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable te && te.game == null) {
-        C2SSeatControlPacket.Client.sendValidateSeatsC2S(gamePos);
-        }};
 
         stopButton = Button.builder(Component.translatable("gui.minopp.seats.stop"), e -> {
             C2SSeatControlPacket.Client.sendGameEnableC2S(gamePos, false);

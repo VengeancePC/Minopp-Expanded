@@ -47,6 +47,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 public class BlockMinoTable extends Block implements EntityBlock {
 
@@ -59,7 +60,8 @@ public class BlockMinoTable extends Block implements EntityBlock {
     }
 
     @Override
-    public @NotNull InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult) {
+    public @NotNull InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player,
+            InteractionHand interactionHand, BlockHitResult blockHitResult) {
         BlockPos corePos = getCore(blockState, blockPos);
         BlockEntity blockEntity = level.getBlockEntity(corePos);
 
@@ -76,22 +78,45 @@ public class BlockMinoTable extends Block implements EntityBlock {
                             return InteractionResult.FAIL;
                         }
                         TurnDeadMan.pedal();
-
                         CardPlayer realPlayer = tableEntity.game.deAmputate(playerWithoutHand);
-                        if (realPlayer == null) return InteractionResult.FAIL;
+                        if (realPlayer == null)
+                            return InteractionResult.FAIL;
                         if (Client.isCursorHittingPile()) {
                             C2SPlayCardPacket.Client.sendPlayNoCardC2S(corePos, playerWithoutHand);
                         } else {
-                            Card selectedCard = realPlayer.hand.get(Mth.clamp(handIndex, 0, realPlayer.hand.size() - 1));
+                            Card selectedCard = realPlayer.hand
+                                    .get(Mth.clamp(handIndex, 0, realPlayer.hand.size() - 1));
                             if (selectedCard.suit == Card.Suit.WILD) {
-                                Client.openWildSelectionScreen(corePos, playerWithoutHand, selectedCard, Client.isShoutModifierHeld());
+                                Client.openWildSelectionScreen(corePos, playerWithoutHand, selectedCard,
+                                        Client.isShoutModifierHeld());
                             } else {
                                 if (selectedCard.number == 7) {
-                                    Client.openSwapHandSelectionScreen(corePos, playerWithoutHand, selectedCard, Client.isShoutModifierHeld(), tableEntity.game);
-                                }
-                              else {
-                                C2SPlayCardPacket.Client.sendPlayCardC2S(corePos, playerWithoutHand, selectedCard,
-                                        null, Client.isShoutModifierHeld());
+                                    Client.openSwapHandSelectionScreen(corePos, playerWithoutHand, selectedCard,
+                                            Client.isShoutModifierHeld(), tableEntity.game);
+                                } else {
+                                    if (selectedCard.number == 0) {
+                                        BlockEntityMinoTable.hideHandUntil.put(playerWithoutHand.uuid, System.currentTimeMillis()
+                                                + BlockEntityMinoTable.HandSwapAnimation.DURATION_MS);
+                                        List<Direction> order = BlockEntityMinoTable.PLAYER_ORDER;
+                                        int size = order.size();
+                                        for (int i = 0; i < size; i++) {
+                                            Direction from = order.get(i);
+                                            Direction to = order.get(tableEntity.game.isAntiClockwise
+                                                    ? (i - 1 + size) % size
+                                                    : (i + 1) % size);
+                                            CardPlayer fromPlayer = tableEntity.players.get(from);
+                                            if (fromPlayer != null) {
+                                                BlockEntityMinoTable.activeAnimations.add(
+                                                        new BlockEntityMinoTable.HandSwapAnimation(
+                                                                BlockEntityMinoTable.getSeatLocalPos(from),
+                                                                BlockEntityMinoTable.getSeatLocalPos(to),
+                                                                5 // hands not synced to other clients, use fixed count
+                                                        ));
+                                            }
+                                        }
+                                    }
+                                            C2SPlayCardPacket.Client.sendPlayCardC2S(corePos, playerWithoutHand, selectedCard,
+                                            null, Client.isShoutModifierHeld());
                                 }
                             }
                         }
@@ -109,16 +134,13 @@ public class BlockMinoTable extends Block implements EntityBlock {
                 Client.openSeatControlScreen(corePos);
                 return InteractionResult.SUCCESS;
             }
-
             if (tableEntity.game == null && !player.isSecondaryUseActive()) {
-                // Join player to table
                 tableEntity.joinPlayerToTable(cardPlayer, player.position());
                 return InteractionResult.SUCCESS;
             }
         }
         return InteractionResult.FAIL;
     }
-
     public static class Client {
 
         public static void openWildSelectionScreen(BlockPos corePos, CardPlayer player, Card selectedCard, boolean shout) {
