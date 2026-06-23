@@ -188,16 +188,18 @@ public class CardGame {
         }
 
         if (card.number == 0 && !cardPlayer.hand.isEmpty()) {
+            if (tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
             for (CardPlayer p : players) {
                 report.sound(Mino.id("game.hand_change"), 500, p);
-            }
+            }}
             cardsRotate(1, report);
         }
 
         if (card.number == 7 && !cardPlayer.hand.isEmpty()) {
+            if (tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
             for (CardPlayer p : players) {
                 report.sound(Mino.id("game.hand_change"), 500, p);
-            }
+            }}
         }
         advanceTurn(report);
         return isCut ? report.cut() : report.played();

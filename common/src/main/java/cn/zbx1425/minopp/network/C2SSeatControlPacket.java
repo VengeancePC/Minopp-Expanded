@@ -28,7 +28,7 @@ public class C2SSeatControlPacket {
         boolean ruleValue = (action == 2) ? packet.readBoolean() : false;
         ServerLevel level = player.serverLevel();
         server.execute(() -> {
-            if (level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
+                if (level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
                 List<CardPlayer> playersList = tableEntity.getPlayersList();
                 CardPlayer cardPlayer = ItemHandCards.getCardPlayer(player);
                 // if (!playersList.contains(cardPlayer)) {

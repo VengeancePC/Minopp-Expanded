@@ -90,11 +90,12 @@ public class BlockMinoTable extends Block implements EntityBlock {
                                 Client.openWildSelectionScreen(corePos, playerWithoutHand, selectedCard,
                                         Client.isShoutModifierHeld());
                             } else {
-                                if (selectedCard.number == 7) {
+                                if (selectedCard.number == 7 && tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false))
+                                 {  
                                     Client.openSwapHandSelectionScreen(corePos, playerWithoutHand, selectedCard,
                                             Client.isShoutModifierHeld(), tableEntity.game);
                                 } else {
-                                    if (selectedCard.number == 0) {
+                                    if (selectedCard.number == 0 && tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
                                         BlockEntityMinoTable.hideHandUntil.put(playerWithoutHand.uuid, System.currentTimeMillis()
                                                 + BlockEntityMinoTable.HandSwapAnimation.DURATION_MS);
                                         List<Direction> order = BlockEntityMinoTable.PLAYER_ORDER;
@@ -104,15 +105,13 @@ public class BlockMinoTable extends Block implements EntityBlock {
                                             Direction to = order.get(tableEntity.game.isAntiClockwise
                                                     ? (i - 1 + size) % size
                                                     : (i + 1) % size);
-                                            CardPlayer fromPlayer = tableEntity.players.get(from);
-                                            if (fromPlayer != null) {
-                                                BlockEntityMinoTable.activeAnimations.add(
-                                                        new BlockEntityMinoTable.HandSwapAnimation(
-                                                                BlockEntityMinoTable.getSeatLocalPos(from),
-                                                                BlockEntityMinoTable.getSeatLocalPos(to),
-                                                                5 // hands not synced to other clients, use fixed count
-                                                        ));
-                                            }
+                                            if (tableEntity.players.get(from) == null)
+                                                continue;
+                                            BlockEntityMinoTable.activeAnimations.add(
+                                                    new BlockEntityMinoTable.HandSwapAnimation(
+                                                            BlockEntityMinoTable.getSeatLocalPos(from),
+                                                            BlockEntityMinoTable.getSeatLocalPos(to),
+                                                            5));
                                         }
                                     }
                                             C2SPlayCardPacket.Client.sendPlayCardC2S(corePos, playerWithoutHand, selectedCard,

@@ -50,6 +50,7 @@ public class BlockEntityMinoTable extends BlockEntity {
     public static final Map<UUID, Long> hideHandUntil = new HashMap<>();
     public ItemStack award = ItemStack.EMPTY;
     public boolean demo = false;
+    public boolean gameEnd = false;
 
     // game rules
     public Map<String, Boolean> rules = new HashMap<>();
@@ -60,8 +61,7 @@ public class BlockEntityMinoTable extends BlockEntity {
 
     public static final String RULE_JUMP_IN = "allowJumpIn";
     public static final String RULE_STACKING = "allowStacking";
-    
-
+    public static final String RULE_SEVEN0 = "allowSeven0";
 
     public static final List<Direction> PLAYER_ORDER = List.of(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST);
 
@@ -81,21 +81,27 @@ public class BlockEntityMinoTable extends BlockEntity {
         public final Vec3 toPos;
         public final int cardCount;
         public final long startTime;
-        public static final long DURATION_MS = 900;
+        public static final long DURATION_MS = 1200;
+        public static final float STAGGER = 0.08f;
 
         public HandSwapAnimation(Vec3 fromPos, Vec3 toPos, int cardCount) {
             this.fromPos = fromPos;
             this.toPos = toPos;
-            this.cardCount = cardCount * 2;
+            this.cardCount = cardCount;
             this.startTime = System.currentTimeMillis();
         }
-
+        
         public float progress() {
             return Math.min(1f, (System.currentTimeMillis() - startTime) / (float) DURATION_MS);
         }
 
+        public float rawProgress() {
+            return (System.currentTimeMillis() - startTime) / (float) DURATION_MS;
+        }
+
         public boolean isDone() {
-            return progress() >= 1f;
+            int stackSize = Math.max(1, Math.min(cardCount, 10));
+            return rawProgress() >= 1f + (stackSize - 1) * STAGGER;
         }
     }
 
@@ -140,6 +146,7 @@ public class BlockEntityMinoTable extends BlockEntity {
             rulesTag.putBoolean(entry.getKey(), entry.getValue());
         }
         compoundTag.put("rules", rulesTag);
+        compoundTag.putBoolean("gameEnd", gameEnd);
     }
 
     @Override
@@ -189,10 +196,13 @@ public class BlockEntityMinoTable extends BlockEntity {
                 rules.put(key, rulesTag.getBoolean(key));
             }
         }
+        gameEnd = compoundTag.getBoolean("gameEnd");
 
         // Default values for missing rules
         rules.putIfAbsent(RULE_JUMP_IN, true);
         rules.putIfAbsent(RULE_STACKING, true);
+        rules.putIfAbsent(RULE_SEVEN0, false);
+
     }
 
     public List<CardPlayer> getPlayersList() {
@@ -289,6 +299,7 @@ public class BlockEntityMinoTable extends BlockEntity {
 
     public void destroyGame(CardPlayer initiator) {
         if (game != null) sendSeatActionTakenToAll();
+        gameEnd = true;
         game = null;
 
         for (Player mcPlayer : level.players()) {
@@ -321,25 +332,6 @@ public class BlockEntityMinoTable extends BlockEntity {
         state = ActionReport.builder(initiator).gameDestroyed().state;
         sync();
     }
-
-    public boolean validateSeatedPlayers() {
-        boolean changed = false;
-        for (Direction direction : PLAYER_ORDER) {
-            CardPlayer seated = players.get(direction);
-            if (seated == null)
-                continue;
-            Player mcPlayer = level.getPlayerByUUID(seated.uuid);
-            if (mcPlayer == null) {
-                players.put(direction, null);
-                changed = true;
-            }
-        }
-        if (changed) {
-            sync();
-        }
-        return changed;
-    }
-
     public void resetSeats(CardPlayer initiator) {
         sendSeatActionTakenToAll();
         players.replaceAll((d, v) -> null);
@@ -398,7 +390,7 @@ public class BlockEntityMinoTable extends BlockEntity {
         }
     }
 
-    private void sendSeatActionTakenToAll() {
+    public void sendSeatActionTakenToAll() {
         for (CardPlayer player : getPlayersList()) {
             Player mcPlayer = level.getPlayerByUUID(player.uuid);
             BlockPos tableCenterPos = getBlockPos().offset(1, 0, 1);

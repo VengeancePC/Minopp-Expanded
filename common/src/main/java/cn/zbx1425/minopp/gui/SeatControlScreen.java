@@ -18,6 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
 
 public class SeatControlScreen extends Screen {
 
@@ -40,8 +41,6 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
     int checkSize = 10;
     Button btn = Button.builder(Component.empty(), b -> {
         boolean current = te.getRule(ruleKey, true);
-
-        te.rules.put(ruleKey, !current); // immediate local update
 
         C2SSeatControlPacket.Client.sendRuleC2S(
                 gamePos,
@@ -67,7 +66,9 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
         return clientPlayer.getSkinTextureLocation();
     }
     return DefaultPlayerSkin.getDefaultSkin(player.uuid);
-}
+    }
+
+
     private static final ResourceLocation PANEL_TEXTURE = new ResourceLocation("minecraft", "textures/block/spruce_planks.png");
     int LARGE_BTN_WIDTH = 70;
     int LARGE_BTN_HEIGHT = 20;
@@ -78,7 +79,7 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
             + MARGIN + LARGE_BTN_HEIGHT + MARGIN;
     int PANEL_WIDTH = 260;
     
-        private Button stopButton, startButton, leaveButton;
+    private Button stopButton, startButton, leaveButton;
 
     @Override
     protected void init() {
@@ -127,7 +128,8 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
 
             String[][] rulesList = {
                     { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" },
-                    { BlockEntityMinoTable.RULE_STACKING, "Allow Stacking" }
+                    { BlockEntityMinoTable.RULE_STACKING, "Allow Stacking" },
+                    { BlockEntityMinoTable.RULE_SEVEN0, "Allow 7-0 Rules"}
             };
 
             for (int i = 0; i < rulesList.length; i++) {
@@ -140,7 +142,6 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(guiGraphics);
-
         if (minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable tableEntity) {
             startButton.active = tableEntity.game == null && tableEntity.getPlayersList().size() >= 2;
             stopButton.active = tableEntity.game != null;
@@ -184,7 +185,8 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
 
                 String[][] rulesList = {
                         { BlockEntityMinoTable.RULE_JUMP_IN, "Allow Jump-In" },
-                        { BlockEntityMinoTable.RULE_STACKING, "Allow Stacking" }
+                        { BlockEntityMinoTable.RULE_STACKING, "Allow Stacking" },
+                        { BlockEntityMinoTable.RULE_SEVEN0, "Allow 7-0 Rules" }
                 };
 
                 int sideWidth = 140;

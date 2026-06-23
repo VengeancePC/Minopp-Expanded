@@ -172,24 +172,26 @@ public class BlockEntityMinoTableRenderer implements BlockEntityRenderer<BlockEn
 
             BlockEntityMinoTable.activeAnimations.removeIf(BlockEntityMinoTable.HandSwapAnimation::isDone);
             for (BlockEntityMinoTable.HandSwapAnimation anim : BlockEntityMinoTable.activeAnimations) {
-                    float t = easeInOut(anim.progress());
-                    double x = Mth.lerp(t, anim.fromPos.x, anim.toPos.x);
-                    double y = Mth.lerp(t, anim.fromPos.y, anim.toPos.y) + Math.sin(t * Math.PI) * 0.5;
-                    double z = Mth.lerp(t, anim.fromPos.z, anim.toPos.z);
-
-                    int stackSize = Math.max(1, Math.min(anim.cardCount, 10));
+                int stackSize = Math.max(1, Math.min(anim.cardCount, 10));
+                double dx = anim.toPos.x - anim.fromPos.x;
+                double dz = anim.toPos.z - anim.fromPos.z;
+                float yaw = (float) Mth.atan2(dz, dx);
+                for (int ci = 0; ci < stackSize; ci++) {
+                    float cardRaw = anim.rawProgress() - ci * BlockEntityMinoTable.HandSwapAnimation.STAGGER;
+                    float cardT = easeInOut(Math.max(0f, Math.min(1f, cardRaw)));
+                    double cx = Mth.lerp(cardT, anim.fromPos.x, anim.toPos.x);
+                    double cy = Mth.lerp(cardT, anim.fromPos.y, anim.toPos.y) + Math.sin(cardT * Math.PI) * 0.5;
+                    double cz = Mth.lerp(cardT, anim.fromPos.z, anim.toPos.z);
                     poseStack.pushPose();
-                    poseStack.translate(x, y, z);
-                    poseStack.scale(0.3f, 0.3f, 0.3f);
+                    poseStack.translate(cx, cy, cz);
+                    poseStack.scale(0.5f, 0.5f, 0.5f);
+                    poseStack.mulPose(Axis.YP.rotation(-yaw + (float) Math.PI / 2));
                     poseStack.mulPose(Axis.XP.rotation(-(float) Math.PI / 2));
-                    for (int ci = 0; ci < stackSize; ci++) {
-                            poseStack.pushPose();
-                            poseStack.translate(0, 0, ci * (1f / 48f));
-                            itemRenderer.render(HAND_CARDS_MODEL_PLACEHOLDER.get(), ItemDisplayContext.FIXED, false,
-                                            poseStack, multiBufferSource, packedLight, packedOverlay, model);
-                            poseStack.popPose();
-                    }
+                    poseStack.translate(0, 0, ci * (1f / 48f));
+                    itemRenderer.render(HAND_CARDS_MODEL_PLACEHOLDER.get(), ItemDisplayContext.FIXED, false,
+                            poseStack, multiBufferSource, packedLight, packedOverlay, model);
                     poseStack.popPose();
+                }
             }
     }
 
