@@ -209,15 +209,15 @@ public class BlockEntityMinoTable extends BlockEntity {
                 && (game.topCard.number == 0 || game.topCard.number == 7)
                 && getRule(RULE_SEVEN0, false)) {
 
-            List<Direction> order = PLAYER_ORDER;
-            int size = order.size();
-            for (int i = 0; i < size; i++) {
-                Direction from = order.get(i);
-                Direction to = order.get(game.isAntiClockwise
-                        ? (i - 1 + size) % size
-                        : (i + 1) % size);
-                if (players.get(from) == null)
-                    continue;
+            List<Direction> occupiedOrder = PLAYER_ORDER.stream()
+                    .filter(d -> players.get(d) != null)
+                    .collect(java.util.stream.Collectors.toList());
+            int occupiedSize = occupiedOrder.size();
+            for (int i = 0; i < occupiedSize; i++) {
+                Direction from = occupiedOrder.get(i);
+                Direction to = occupiedOrder.get(game.isAntiClockwise
+                        ? (i - 1 + occupiedSize) % occupiedSize
+                        : (i + 1) % occupiedSize);
                 activeAnimations.add(new HandSwapAnimation(
                         getSeatLocalPos(from),
                         getSeatLocalPos(to),

@@ -191,8 +191,9 @@ public class CardGame {
             if (tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
             for (CardPlayer p : players) {
                 report.sound(Mino.id("game.hand_change"), 500, p);
-            }}
+            }
             cardsRotate(1, report);
+        }
         }
 
         if (card.number == 7 && !cardPlayer.hand.isEmpty()) {
