@@ -40,6 +40,7 @@ public class BlockEntityMinoTableRenderer implements BlockEntityRenderer<BlockEn
     @Override
     public void render(BlockEntityMinoTable blockEntity, float partialTick, PoseStack poseStack,
                     MultiBufferSource multiBufferSource, int packedLight, int packedOverlay) {
+            BlockEntityMinoTable.activeAnimations.removeIf(BlockEntityMinoTable.HandSwapAnimation::isDone);
             if (blockEntity.game == null) return;
 
             BakedModel model = itemRenderer.getModel(HAND_CARDS_MODEL_PLACEHOLDER.get(), null, null, 0);
@@ -170,7 +171,7 @@ public class BlockEntityMinoTableRenderer implements BlockEntityRenderer<BlockEn
             }
             poseStack.popPose();
 
-            BlockEntityMinoTable.activeAnimations.removeIf(BlockEntityMinoTable.HandSwapAnimation::isDone);
+            
             for (BlockEntityMinoTable.HandSwapAnimation anim : BlockEntityMinoTable.activeAnimations) {
                 int stackSize = Math.max(1, Math.min(anim.cardCount, 10));
                 double dx = anim.toPos.x - anim.fromPos.x;

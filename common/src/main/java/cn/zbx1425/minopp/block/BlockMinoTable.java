@@ -90,11 +90,13 @@ public class BlockMinoTable extends Block implements EntityBlock {
                                 Client.openWildSelectionScreen(corePos, playerWithoutHand, selectedCard,
                                         Client.isShoutModifierHeld());
                             } else {
-                                if (selectedCard.number == 7 && tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false))
-                                 {  
+                                if (selectedCard.number == 7
+                                        && tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)
+                                        && selectedCard.canPlayOn(tableEntity.game.topCard)) {
                                     Client.openSwapHandSelectionScreen(corePos, playerWithoutHand, selectedCard,
                                             Client.isShoutModifierHeld(), tableEntity.game);
-                                } else {
+                                }
+                                            else {
                                             C2SPlayCardPacket.Client.sendPlayCardC2S(corePos, playerWithoutHand, selectedCard,
                                             null, Client.isShoutModifierHeld());
                                 }

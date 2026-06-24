@@ -52,6 +52,9 @@ public class BlockEntityMinoTable extends BlockEntity {
     public ItemStack award = ItemStack.EMPTY;
     public boolean demo = false;
     public boolean gameEnd = false;
+    public UUID lastPlayedByUuid = null;
+    public int lastDiscardSize = 0;
+    public Map<UUID, Integer> lastHandSizes = new HashMap<>();
 
     // game rules
     public Map<String, Boolean> rules = new HashMap<>();
@@ -148,6 +151,9 @@ public class BlockEntityMinoTable extends BlockEntity {
         }
         compoundTag.put("rules", rulesTag);
         compoundTag.putBoolean("gameEnd", gameEnd);
+        if (lastPlayedByUuid != null)
+            compoundTag.putUUID("lastPlayedBy", lastPlayedByUuid);
+        compoundTag.putInt("lastDiscardSize", lastDiscardSize);
     }
 
     @Override
@@ -198,34 +204,98 @@ public class BlockEntityMinoTable extends BlockEntity {
             }
         }
         gameEnd = compoundTag.getBoolean("gameEnd");
+
         // Default values for missing rules
         rules.putIfAbsent(RULE_JUMP_IN, true);
         rules.putIfAbsent(RULE_STACKING, true);
         rules.putIfAbsent(RULE_SEVEN0, false);
 
-        if (level != null && level.isClientSide
-                && game != null && previousGame != null
-                && game.topCard != null
-                && (game.topCard.number == 0 || game.topCard.number == 7)
-                && getRule(RULE_SEVEN0, false)) {
+        // used for animation tracking
+        lastPlayedByUuid = compoundTag.hasUUID("lastPlayedBy")
+                ? compoundTag.getUUID("lastPlayedBy")
+                : null;
+        int savedLastDiscardSize = compoundTag.getInt("lastDiscardSize");
 
-            List<Direction> occupiedOrder = PLAYER_ORDER.stream()
-                    .filter(d -> players.get(d) != null)
-                    .collect(java.util.stream.Collectors.toList());
-            int occupiedSize = occupiedOrder.size();
-            for (int i = 0; i < occupiedSize; i++) {
-                Direction from = occupiedOrder.get(i);
-                Direction to = occupiedOrder.get(game.isAntiClockwise
-                        ? (i - 1 + occupiedSize) % occupiedSize
-                        : (i + 1) % occupiedSize);
-                activeAnimations.add(new HandSwapAnimation(
-                        getSeatLocalPos(from),
-                        getSeatLocalPos(to),
-                        5));
+        // Seed tracking on game start
+        if (game != null && previousGame == null) {
+            lastDiscardSize = game.discardDeck.size();
+            lastHandSizes.clear();
+            for (CardPlayer p : game.players) {
+                lastHandSizes.put(p.uuid, p.hand.size());
             }
         }
 
+        // Animation detection
+        if (level != null && level.isClientSide && game != null && previousGame != null) {
 
+            boolean isHandSwapPlay = game.topCard != null
+                    && (game.topCard.number == 0 || game.topCard.number == 7)
+                    && game.discardDeck.size() > savedLastDiscardSize
+                    && getRule(RULE_SEVEN0, false);
+
+            // 0 card animate
+            if (isHandSwapPlay && game.topCard.number == 0
+                    && game.topCard.family == Card.Family.NUMBER) {
+                List<Direction> occupiedOrder = PLAYER_ORDER.stream()
+                        .filter(d -> players.get(d) != null)
+                        .collect(java.util.stream.Collectors.toList());
+                int occupiedSize = occupiedOrder.size();
+                for (int i = 0; i < occupiedSize; i++) {
+                    Direction from = occupiedOrder.get(i);
+                    Direction to = occupiedOrder.get(game.isAntiClockwise
+                            ? (i - 1 + occupiedSize) % occupiedSize
+                            : (i + 1) % occupiedSize);
+                    activeAnimations.add(new HandSwapAnimation(
+                            getSeatLocalPos(from),
+                            getSeatLocalPos(to),
+                            5));
+                }
+            }
+
+            // Card played animation - skip if hand swap just happened
+            if (!isHandSwapPlay && game.discardDeck.size() > savedLastDiscardSize
+                    && lastPlayedByUuid != null) {
+                Direction fromDir = getPlayerDirection(lastPlayedByUuid);
+                if (fromDir != null) {
+                    activeAnimations.add(new HandSwapAnimation(
+                            getSeatLocalPos(fromDir),
+                            new Vec3(1.5, 0.94, 1.5),
+                            1));
+                }
+            }
+
+            // Draw animation - skip entirely if hand swap just happened
+            if (!isHandSwapPlay) {
+                for (CardPlayer p : game.players) {
+                    if (p.uuid.equals(lastPlayedByUuid))
+                        continue;
+                    int prev = lastHandSizes.getOrDefault(p.uuid, 0);
+                    int curr = p.hand.size();
+                    if (curr > prev) {
+                        Direction dir = getPlayerDirection(p.uuid);
+                        if (dir != null) {
+                            activeAnimations.add(new HandSwapAnimation(
+                                    new Vec3(0.5, 0.94, 0.5),
+                                    getSeatLocalPos(dir),
+                                    curr - prev));
+                        }
+                    }
+                }
+            }
+
+            lastDiscardSize = game.discardDeck.size();
+            lastHandSizes.clear();
+            for (CardPlayer p : game.players) {
+                lastHandSizes.put(p.uuid, p.hand.size());
+            }
+        }
+
+        // Reset values at game end
+        if (game == null) {
+            lastDiscardSize = 0;
+            lastPlayedByUuid = null;
+            lastHandSizes.clear();
+        }
 
     }
 

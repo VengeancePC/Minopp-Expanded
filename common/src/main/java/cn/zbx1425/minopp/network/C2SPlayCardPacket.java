@@ -86,9 +86,16 @@ public class C2SPlayCardPacket {
                         return;
                     Card.Suit wildSelection = wildSelectionOrdinal == -1 ? null
                             : Card.Suit.values()[wildSelectionOrdinal];
+                    int discardSizeBefore = tableEntity.game.discardDeck.size();
                     ActionReport result = tableEntity.game.playCard(cardPlayer, card, wildSelection, shout);
-                    CardPlayer targetPlayer = tableEntity.game.deAmputate(targetPlayerUuid);
-                    tableEntity.game.swapHands(cardPlayer, targetPlayer);
+                    if (card.number == 7
+                            && tableEntity.game.discardDeck.size() > discardSizeBefore
+                            && tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
+                        CardPlayer targetPlayer = tableEntity.game.deAmputate(targetPlayerUuid);
+                        if (targetPlayer != null) {
+                            tableEntity.game.swapHands(cardPlayer, targetPlayer);
+                        }
+                    }
                     tableEntity.handleActionResult(result, cardPlayer, player);
                 });
             }
