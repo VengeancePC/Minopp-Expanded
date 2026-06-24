@@ -10,6 +10,7 @@ import cn.zbx1425.minopp.game.Card;
 import cn.zbx1425.minopp.game.CardGame;
 import cn.zbx1425.minopp.game.CardPlayer;
 import cn.zbx1425.minopp.item.ItemDataUtils;
+import cn.zbx1425.minopp.network.C2SPlayCardPacket;
 import cn.zbx1425.minopp.network.S2CActionEphemeralPacket;
 import cn.zbx1425.minopp.network.S2CEffectListPacket;
 import com.mojang.datafixers.util.Pair;
@@ -90,7 +91,7 @@ public class BlockEntityMinoTable extends BlockEntity {
             this.cardCount = cardCount;
             this.startTime = System.currentTimeMillis();
         }
-        
+
         public float progress() {
             return Math.min(1f, (System.currentTimeMillis() - startTime) / (float) DURATION_MS);
         }
@@ -197,11 +198,34 @@ public class BlockEntityMinoTable extends BlockEntity {
             }
         }
         gameEnd = compoundTag.getBoolean("gameEnd");
-
         // Default values for missing rules
         rules.putIfAbsent(RULE_JUMP_IN, true);
         rules.putIfAbsent(RULE_STACKING, true);
         rules.putIfAbsent(RULE_SEVEN0, false);
+
+        if (level != null && level.isClientSide
+                && game != null && previousGame != null
+                && game.topCard != null
+                && (game.topCard.number == 0 || game.topCard.number == 7)
+                && getRule(RULE_SEVEN0, false)) {
+
+            List<Direction> order = PLAYER_ORDER;
+            int size = order.size();
+            for (int i = 0; i < size; i++) {
+                Direction from = order.get(i);
+                Direction to = order.get(game.isAntiClockwise
+                        ? (i - 1 + size) % size
+                        : (i + 1) % size);
+                if (players.get(from) == null)
+                    continue;
+                activeAnimations.add(new HandSwapAnimation(
+                        getSeatLocalPos(from),
+                        getSeatLocalPos(to),
+                        5));
+            }
+        }
+
+
 
     }
 
@@ -377,9 +401,9 @@ public class BlockEntityMinoTable extends BlockEntity {
                 handleActionResult(penaltyReport, penalisedPlayer, null);
             }
         }
+        }
             sync();
         }
-    }
 
     private void sendMessageToAll(ActionMessage message) {
         for (CardPlayer player : getPlayersList()) {

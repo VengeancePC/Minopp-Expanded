@@ -95,25 +95,6 @@ public class BlockMinoTable extends Block implements EntityBlock {
                                     Client.openSwapHandSelectionScreen(corePos, playerWithoutHand, selectedCard,
                                             Client.isShoutModifierHeld(), tableEntity.game);
                                 } else {
-                                    if (selectedCard.number == 0 && tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
-                                        BlockEntityMinoTable.hideHandUntil.put(playerWithoutHand.uuid, System.currentTimeMillis()
-                                                + BlockEntityMinoTable.HandSwapAnimation.DURATION_MS);
-                                        List<Direction> order = BlockEntityMinoTable.PLAYER_ORDER;
-                                        int size = order.size();
-                                        for (int i = 0; i < size; i++) {
-                                            Direction from = order.get(i);
-                                            Direction to = order.get(tableEntity.game.isAntiClockwise
-                                                    ? (i - 1 + size) % size
-                                                    : (i + 1) % size);
-                                            if (tableEntity.players.get(from) == null)
-                                                continue;
-                                            BlockEntityMinoTable.activeAnimations.add(
-                                                    new BlockEntityMinoTable.HandSwapAnimation(
-                                                            BlockEntityMinoTable.getSeatLocalPos(from),
-                                                            BlockEntityMinoTable.getSeatLocalPos(to),
-                                                            5));
-                                        }
-                                    }
                                             C2SPlayCardPacket.Client.sendPlayCardC2S(corePos, playerWithoutHand, selectedCard,
                                             null, Client.isShoutModifierHeld());
                                 }
