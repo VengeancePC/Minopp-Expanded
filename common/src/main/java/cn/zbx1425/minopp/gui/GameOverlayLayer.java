@@ -93,7 +93,7 @@ public class GameOverlayLayer {
         CardPlayer cardPlayer = ItemHandCards.getCardPlayer(player);
         CardPlayer currentPlayer = tableEntity.game.players.get(tableEntity.game.currentPlayerIndex);
         // Zoom effect target
-        if (currentPlayer.equals(cardPlayer)) {
+        if (currentPlayer.equals(cardPlayer) && !tableEntity.game.awaitingCutIn) {
             if (tableEntity.game.currentPlayerPhase == CardGame.PlayerActionPhase.DISCARD_HAND) {
                 zoomAnimationTarget = 1;
             } else {
@@ -121,6 +121,13 @@ public class GameOverlayLayer {
             drawStringWithBackdrop(guiGraphics, font, Component.translatable("gui.minopp.play.turn_other", currentPlayer.name), x, y, 0xFFAAAAAA);
         }
         y += font.lineHeight;
+
+        // for debug checking when the cutIn check is active
+        // if (tableEntity.game.awaitingCutIn) {
+        //     drawStringWithBackdrop(guiGraphics, font, Component.literal("DEBUG: awaitingCutIn = true"), x, y,
+        //             0xFFFF0000);
+        //     y += font.lineHeight;
+        // }
 
         MutableComponent auxInfo = Component.translatable("gui.minopp.play.direction." + (tableEntity.game.isAntiClockwise ? "ccw" : "cw"));
         if (tableEntity.game.drawCount > 0) {
@@ -232,6 +239,9 @@ public class GameOverlayLayer {
             return false;
         BlockEntityMinoTable tableEntity = (BlockEntityMinoTable) level.getBlockEntity(gamePos);
         CardPlayer playerWithoutHand = ItemHandCards.getCardPlayer(player);
+        boolean isMyTurn = tableEntity.game.players
+                .indexOf(tableEntity.game.deAmputate(playerWithoutHand)) == tableEntity.game.currentPlayerIndex
+                && !tableEntity.game.awaitingCutIn;
         int currentPlayer = tableEntity.game.currentPlayerIndex;
         int selectPlayer = tableEntity.game.players.indexOf(player);
         final int CARD_V_SPACING = 20;
@@ -279,7 +289,7 @@ public class GameOverlayLayer {
                     (float) Mth.lerp(8 * 0.05 * partialTicks,
                             currentXOff, targetXOff));
             int y = height - ((CARD_HEIGHT / 2) + CARD_V_SPACING * (handSize - i)) + cardDrawOffset;
-            if (i == clientHandIndex) {
+            if (i == clientHandIndex && isMyTurn) {
                 Card card = realPlayer.hand.get(i);
                 Component cardName = card.getDisplayName();
                 guiGraphics.drawString(font, cardName, x - font.width(cardName) - 10, y + 10, 0xFFFFFFDD);
@@ -298,7 +308,9 @@ public class GameOverlayLayer {
             int cardUW = 16;
             int cardVH = 25;
 
-            float shadowAlpha = (float) Math.max(Mth.lerp(zoomAnimationProgress, 0.5, 0), 0);
+            float shadowAlpha = isMyTurn
+                    ? (float) Math.max(Mth.lerp(zoomAnimationProgress, 0.5, 0), 0)
+                    : 0.5f;
             
             // guiGraphics.fill(x + 3, y + 3, x + CARD_WIDTH - 3, y + CARD_HEIGHT - 3,
             // card.suit.color);
