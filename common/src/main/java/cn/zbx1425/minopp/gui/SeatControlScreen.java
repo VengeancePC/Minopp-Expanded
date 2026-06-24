@@ -16,9 +16,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.Block;
 
 public class SeatControlScreen extends Screen {
 
@@ -176,6 +174,7 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
                         0xFF4CAF50);
             }
 
+            // settings tab
             if (settingsOpen && minecraft.level.getBlockEntity(gamePos) instanceof BlockEntityMinoTable te) {
                 int sideX = xOff + PANEL_WIDTH + 8;
                 int sideY = yOff;
@@ -233,6 +232,7 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
                     guiGraphics.drawCenteredString(font, name, width / 2, y, 0xFFAAAAAA);
                 }
             }
+
             // West Player
             {
                 String name = getPlayerName(tableEntity, Direction.WEST);
@@ -245,6 +245,7 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
                 }
                 guiGraphics.drawString(font, name, nameX, y, 0xFFAAAAAA);
             }
+
             // East Player
             {
                 String name = getPlayerName(tableEntity, Direction.EAST);
@@ -258,6 +259,7 @@ private void addRuleRow(int sideX, int rowY, String ruleKey, String labelKey, Bl
                 int nameX = x + (skin != null ? headSize + 4 : 0);
                 guiGraphics.drawString(font, name, nameX, y, 0xFFAAAAAA);
             }
+            
             // South Player
             {
                 String name = getPlayerName(tableEntity, Direction.SOUTH);

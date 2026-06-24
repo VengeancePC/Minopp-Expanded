@@ -128,17 +128,18 @@ public class CardGame {
         ActionReport report = ActionReport.builder(this, cardPlayer);
         int playerIndex = players.indexOf(cardPlayer);
 
-        // hard early check for jump in to stop players playing during the cut-in window
+        // early check for jump in to stop players playing during the cut-in window
         if (awaitingCutIn && !(topCard.equals(card) && tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true))) {
             return report.fail(Component.translatable("game.minopp.play.not_match_cut"));
         }
-
+        // game start check
         if (playerIndex == -1)
             return report.fail(Component.translatable("game.minopp.play.no_player"));
         if (!cardPlayer.hand.contains(card))
             return report.fail(Component.translatable("game.minopp.play.not_your_card"));
         boolean isCut = false;
-        // Cut
+
+        // cut in
         if (awaitingCutIn && playerIndex != currentPlayerIndex) {
             if (!tableEntity.getRule(BlockEntityMinoTable.RULE_JUMP_IN, true)) {
                 return report.fail(Component.translatable("game.minopp.play.not_your_turn"));

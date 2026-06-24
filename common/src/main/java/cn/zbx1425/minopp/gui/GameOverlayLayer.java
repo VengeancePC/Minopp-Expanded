@@ -108,7 +108,8 @@ public class GameOverlayLayer {
         }
 
         if (Minecraft.getInstance().options.hideGui || !ClientConfig.ENABLE_GAME_HISTORY_UI)  return;
-        // defines game GUI position, listing game actions (by default top left), negative goes left, positive goes right for X
+
+        // defines game GUI position, listing game actions (by default top left), negative goes left, positive goes right for X, controlled through config
         int x = ClientConfig.GUI_X_POSITION, y = ClientConfig.GUI_Y_POSITION;
 
         Font font = Minecraft.getInstance().font;
@@ -250,7 +251,7 @@ public class GameOverlayLayer {
         if (realPlayer == null)
             return false;
 
-        int myPlayerIndex = tableEntity.game.players.indexOf(realPlayer); // correct index
+        int myPlayerIndex = tableEntity.game.players.indexOf(realPlayer);
         boolean isMyTurn = myPlayerIndex == tableEntity.game.currentPlayerIndex
                 && !tableEntity.game.awaitingCutIn;
         int currentPlayer = tableEntity.game.currentPlayerIndex;
@@ -260,13 +261,11 @@ public class GameOverlayLayer {
 
         int clientHandIndex = Mth.clamp(ItemHandCards.getClientHandIndex(player), 0, realPlayer.hand.size() - 1);
 
-        // Compute some hashes for hand cards, for the sake of animation
         realPlayer.hand.sort(Card::compareTo);
         LongArrayList handCardHashes = new LongArrayList();
         for (Card card : realPlayer.hand) {
             if (!handCardHashes.isEmpty()
                     && card.hashCode() == (handCardHashes.get(handCardHashes.size() - 1) & 0xFFFFFFFFL)) {
-                // Tell duplicate identical cards apart; the list's already sorted
                 handCardHashes.add(handCardHashes.get(handCardHashes.size() - 1) + 0x100000000L);
             } else {
                 handCardHashes.add(card.hashCode());
@@ -331,7 +330,8 @@ public class GameOverlayLayer {
             } else {
                 Component cardName = card.getCardFaceName().copy()
                         .withStyle(Style.EMPTY.withFont(new ResourceLocation("include/default")));
-                // blend color with shadowAlpha
+
+                // shadowAlpha decides greyed or non-greyed cards
                 int colorA = (int) (0x22 * shadowAlpha + 0xFF * (1 - shadowAlpha));
                 guiGraphics.drawString(font, cardName, 0, 0, 0xFF000000 + colorA * 0x10101);
             }

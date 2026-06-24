@@ -10,7 +10,6 @@ import cn.zbx1425.minopp.game.Card;
 import cn.zbx1425.minopp.game.CardGame;
 import cn.zbx1425.minopp.game.CardPlayer;
 import cn.zbx1425.minopp.item.ItemDataUtils;
-import cn.zbx1425.minopp.network.C2SPlayCardPacket;
 import cn.zbx1425.minopp.network.S2CActionEphemeralPacket;
 import cn.zbx1425.minopp.network.S2CEffectListPacket;
 import com.mojang.datafixers.util.Pair;
@@ -216,7 +215,7 @@ public class BlockEntityMinoTable extends BlockEntity {
                 : null;
         int savedLastDiscardSize = compoundTag.getInt("lastDiscardSize");
 
-        // Seed tracking on game start
+        // intialise tracking values
         if (game != null && previousGame == null) {
             lastDiscardSize = game.discardDeck.size();
             lastHandSizes.clear();
@@ -290,7 +289,7 @@ public class BlockEntityMinoTable extends BlockEntity {
             }
         }
 
-        // Reset values at game end
+        // Reset tracking values
         if (game == null) {
             lastDiscardSize = 0;
             lastPlayedByUuid = null;

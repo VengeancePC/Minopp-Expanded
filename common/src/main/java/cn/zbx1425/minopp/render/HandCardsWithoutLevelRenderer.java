@@ -47,7 +47,7 @@ public class HandCardsWithoutLevelRenderer extends BlockEntityWithoutLevelRender
                 UUID bearerId = ItemDataUtils.getBearerId(itemStack);
                 Long hideUntil = BlockEntityMinoTable.hideHandUntil.get(bearerId);
                 if (hideUntil != null && System.currentTimeMillis() < hideUntil) {
-                        return; // don't render hand during animation
+                        return;
                 }
                 if (tablePos == null) return;
                 ClientLevel level = Minecraft.getInstance().level;
