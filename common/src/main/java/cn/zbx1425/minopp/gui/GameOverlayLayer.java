@@ -238,24 +238,27 @@ public class GameOverlayLayer {
         if (gamePos == null)
             return false;
         BlockEntityMinoTable tableEntity = (BlockEntityMinoTable) level.getBlockEntity(gamePos);
+        if (tableEntity == null)
+            return false;
+        if (tableEntity.game == null)
+            return false;
+
         CardPlayer playerWithoutHand = ItemHandCards.getCardPlayer(player);
-        boolean isMyTurn = tableEntity.game.players
-                .indexOf(tableEntity.game.deAmputate(playerWithoutHand)) == tableEntity.game.currentPlayerIndex
+        CardPlayer realPlayer = tableEntity.game.players.stream()
+                .filter(p -> p.equals(playerWithoutHand))
+                .findFirst().orElse(null);
+        if (realPlayer == null)
+            return false;
+
+        int myPlayerIndex = tableEntity.game.players.indexOf(realPlayer); // correct index
+        boolean isMyTurn = myPlayerIndex == tableEntity.game.currentPlayerIndex
                 && !tableEntity.game.awaitingCutIn;
         int currentPlayer = tableEntity.game.currentPlayerIndex;
-        int selectPlayer = tableEntity.game.players.indexOf(player);
         final int CARD_V_SPACING = 20;
         final int CARD_WIDTH = (int) (100.0 * Mth.lerp(zoomAnimationProgress, 0.93, 1.0));
         final int CARD_HEIGHT = (int) (CARD_WIDTH * 8.9 / 5.6);
 
-        if (tableEntity.game == null)
-            return false;
-        CardPlayer realPlayer = tableEntity.game.players.stream().filter(p -> p.equals(playerWithoutHand)).findFirst()
-                .orElse(null);
-        if (realPlayer == null)
-            return false;
         int clientHandIndex = Mth.clamp(ItemHandCards.getClientHandIndex(player), 0, realPlayer.hand.size() - 1);
-
 
         // Compute some hashes for hand cards, for the sake of animation
         realPlayer.hand.sort(Card::compareTo);
@@ -337,7 +340,7 @@ public class GameOverlayLayer {
             guiGraphics.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0x222222 | ((int) (0xFF * shadowAlpha) << 24));
             guiGraphics.pose().popPose();
 
-            if (tableEntity.game.awaitingCutIn && currentPlayer != selectPlayer) {
+            if (tableEntity.game.awaitingCutIn && currentPlayer != myPlayerIndex) {
                 Card topCard = tableEntity.game.topCard;
                 boolean canCutInWithThisCard = card.getEquivFamily() == topCard.getEquivFamily()
                         && card.getEquivSuit() == topCard.getEquivSuit()

@@ -52,7 +52,7 @@
   "game.minopp.card.family.draw": "+%s",
 
   "gui.minopp.wild_selection.title": "Select a color",
-  "gui.minopp.swap_card_selection.title": "Select a player",
+  "gui.minopp.swap_card_selection.title": "Select a Player",
   "gui.minopp.play.pass": "Pass",
   "gui.minopp.play.start_hint": "Stand beside the table and right-click to join.",
   "gui.minopp.play.game_active": "Mino++ Game",
