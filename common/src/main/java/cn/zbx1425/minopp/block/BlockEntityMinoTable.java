@@ -213,7 +213,6 @@ public class BlockEntityMinoTable extends BlockEntity {
         lastPlayedByUuid = compoundTag.hasUUID("lastPlayedBy")
                 ? compoundTag.getUUID("lastPlayedBy")
                 : null;
-        int savedLastDiscardSize = compoundTag.getInt("lastDiscardSize");
 
         // intialise tracking values
         if (game != null && previousGame == null) {
@@ -229,7 +228,7 @@ public class BlockEntityMinoTable extends BlockEntity {
 
             boolean isHandSwapPlay = game.topCard != null
                     && (game.topCard.number == 0 || game.topCard.number == 7)
-                    && game.discardDeck.size() > savedLastDiscardSize
+                    && game.discardDeck.size() > lastDiscardSize
                     && getRule(RULE_SEVEN0, false);
 
             // 0 card animate
@@ -248,18 +247,6 @@ public class BlockEntityMinoTable extends BlockEntity {
                             getSeatLocalPos(from),
                             getSeatLocalPos(to),
                             5));
-                }
-            }
-
-            // Card played animation - skip if hand swap just happened
-            if (!isHandSwapPlay && game.discardDeck.size() > savedLastDiscardSize
-                    && lastPlayedByUuid != null) {
-                Direction fromDir = getPlayerDirection(lastPlayedByUuid);
-                if (fromDir != null) {
-                    activeAnimations.add(new HandSwapAnimation(
-                            getSeatLocalPos(fromDir),
-                            new Vec3(1.5, 0.94, 1.5),
-                            1));
                 }
             }
 

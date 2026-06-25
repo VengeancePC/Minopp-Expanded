@@ -337,6 +337,8 @@ public void advanceTurn(ActionReport report) {
         awaitingCutIn = true;
         TaskScheduler.Holder.INSTANCE.schedule(100, () -> {
             awaitingCutIn = false;
+            tableEntity.setChanged();
+            tableEntity.sync();
         });
         return;
     }
