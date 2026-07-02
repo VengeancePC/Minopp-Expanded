@@ -250,6 +250,23 @@ public class BlockEntityMinoTable extends BlockEntity {
                 }
             }
 
+            // 7 card animate
+            if (isHandSwapPlay && game.topCard.number == 7
+                    && game.lastSwapFromUuid != null && game.lastSwapToUuid != null) {
+                Direction fromDir = getPlayerDirection(game.lastSwapFromUuid);
+                Direction toDir = getPlayerDirection(game.lastSwapToUuid);
+                if (fromDir != null && toDir != null) {
+                    CardPlayer fromP = game.deAmputate(game.lastSwapFromUuid);
+                    CardPlayer toP = game.deAmputate(game.lastSwapToUuid);
+                    int fromCount = toP != null ? toP.hand.size() : 5;
+                    int toCount = fromP != null ? fromP.hand.size() : 5;
+                    activeAnimations.add(new HandSwapAnimation(
+                            getSeatLocalPos(fromDir), getSeatLocalPos(toDir), fromCount));
+                    activeAnimations.add(new HandSwapAnimation(
+                            getSeatLocalPos(toDir), getSeatLocalPos(fromDir), toCount));
+                }
+            }
+
             // Draw animation - skip entirely if hand swap just happened
             if (!isHandSwapPlay) {
                 for (CardPlayer p : game.players) {

@@ -310,9 +310,12 @@ public class GameOverlayLayer {
             int cardUW = 16;
             int cardVH = 25;
 
-            float shadowAlpha = isMyTurn
-                    ? (float) Math.max(Mth.lerp(zoomAnimationProgress, 0.5, 0), 0)
-                    : 0.5f;
+            float shadowAlpha;
+            if (!isMyTurn || tableEntity.game.awaitingCutIn) {
+                shadowAlpha = 0.5f;
+            } else {
+                shadowAlpha = 0f;
+            }
             
             // guiGraphics.fill(x + 3, y + 3, x + CARD_WIDTH - 3, y + CARD_HEIGHT - 3,
             // card.suit.color);

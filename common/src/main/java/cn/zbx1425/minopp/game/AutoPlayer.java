@@ -1,5 +1,7 @@
 package cn.zbx1425.minopp.game;
 
+import cn.zbx1425.minopp.block.BlockEntityMinoTable;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 
@@ -44,6 +46,25 @@ public class AutoPlayer {
             if (card.suit == Card.Suit.WILD && card.family != Card.Family.DRAW) {
                 ActionReport result = game.playCard(realPlayer, card, getMostCommonSuit(realPlayer), shoutsMino);
                 if (!result.isFail) return result;
+            }
+        }
+
+        // If we have a 7
+        for (Card card : realPlayer.hand) {
+            if (card.number == 7 && game.tableEntity.getRule(BlockEntityMinoTable.RULE_SEVEN0, false)) {
+                if (!canPlayDrawCard && card.family == Card.Family.DRAW)
+                    continue;
+                if (!card.canPlayOn(topCard))
+                    continue;
+                ActionReport result = game.playCard(realPlayer, card, null, shoutsMino);
+                if (!result.isFail) {
+                    java.util.List<CardPlayer> others = new java.util.ArrayList<>(game.players);
+                    others.remove(realPlayer);
+                    if (!others.isEmpty()) {
+                        game.swapHands(realPlayer, others.get(new Random().nextInt(others.size())));
+                    }
+                    return result;
+                }
             }
         }
 

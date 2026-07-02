@@ -50,6 +50,9 @@ public class CardGame {
     public boolean isAntiClockwise;
     public boolean awaitingCutIn;
 
+    public UUID lastSwapFromUuid;
+    public UUID lastSwapToUuid;
+
     public List<Card> deck = new ArrayList<>();
     public List<Card> discardDeck = new ArrayList<>();
     public Card topCard;
@@ -91,6 +94,8 @@ public class CardGame {
         indexMap[a] = b;
         indexMap[b] = a;
         cardsPermute(indexMap, null);
+        lastSwapFromUuid = initiator.uuid;
+        lastSwapToUuid = target.uuid;
     }
 
     public CardGame(List<CardPlayer> players) {
@@ -395,10 +400,15 @@ public CardPlayer deAmputate(UUID uuid) {
         awaitingCutIn = tag.getBoolean("awaitingCutIn");
         currentPlayerPhase = PlayerActionPhase.valueOf(tag.getString("currentPlayerPhase"));
         isAntiClockwise = tag.getBoolean("isAntiClockwise");
-        deck = new ArrayList<>(tag.getList("deck", CompoundTag.TAG_COMPOUND).stream().map(t -> new Card((CompoundTag) t)).toList());
-        discardDeck = new ArrayList<>(tag.getList("discardDeck", CompoundTag.TAG_COMPOUND).stream().map(t -> new Card((CompoundTag) t)).toList());
+        deck = new ArrayList<>(
+                tag.getList("deck", CompoundTag.TAG_COMPOUND).stream().map(t -> new Card((CompoundTag) t)).toList());
+        discardDeck = new ArrayList<>(tag.getList("discardDeck", CompoundTag.TAG_COMPOUND).stream()
+                .map(t -> new Card((CompoundTag) t)).toList());
         topCard = new Card(tag.getCompound("topCard"));
-        players = new ArrayList<>(tag.getList("players", CompoundTag.TAG_COMPOUND).stream().map(t -> new CardPlayer((CompoundTag)t)).toList());
+        players = new ArrayList<>(tag.getList("players", CompoundTag.TAG_COMPOUND).stream()
+                .map(t -> new CardPlayer((CompoundTag) t)).toList());
+        lastSwapFromUuid = tag.hasUUID("lastSwapFrom") ? tag.getUUID("lastSwapFrom") : null;
+        lastSwapToUuid = tag.hasUUID("lastSwapTo") ? tag.getUUID("lastSwapTo") : null;
     }
 
     public CompoundTag toTag() {
@@ -419,6 +429,10 @@ public CardPlayer deAmputate(UUID uuid) {
         ListTag playersTag = new ListTag();
         playersTag.addAll(players.stream().map(CardPlayer::toTag).toList());
         tag.put("players", playersTag);
+        if (lastSwapFromUuid != null)
+            tag.putUUID("lastSwapFrom", lastSwapFromUuid);
+        if (lastSwapToUuid != null)
+            tag.putUUID("lastSwapTo", lastSwapToUuid);
         return tag;
     }
 }
